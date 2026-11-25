@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#007AFF">
+<title>Catalogue BD</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Catalogue BD">
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f5f5f7; color:#1c1c1e; padding-bottom:80px; }
+.header { background:#007AFF; color:#fff; padding:20px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,.1); }
+.header h1 { font-size:24px; margin-bottom:10px; }
+.collection-selector { display:flex; gap:10px; align-items:center; }
+.collection-selector select { flex:1; padding:8px; border-radius:8px; border:none; background:rgba(255,255,255,.2); color:#fff; font-size:16px; }
+.collection-selector select option { background:#007AFF; color:#fff; }
+.btn-manage { padding:8px 16px; background:rgba(255,255,255,.3); border:none; border-radius:8px; color:#fff; font-size:14px; cursor:pointer; }
+.search-bar { padding:15px 20px; background:#fff; border-bottom:1px solid #e5e5ea; }
+.search-bar input { width:100%; padding:10px 15px; border:1px solid #e5e5ea; border-radius:10px; font-size:16px; }
+.content { padding:20px; }
+.serie-group { margin-bottom:30px; }
+.serie-header { display:flex; align-items:center; gap:10px; margin-bottom:15px; padding:10px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+.serie-header h2 { flex:1; font-size:18px; color:#007AFF; }
+.serie-count { padding:4px 12px; background:#f5f5f7; border-radius:12px; font-size:14px; color:#8e8e93; }
+.bd-item { background:#fff; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.1); cursor:pointer; }
+.bd-item:active { transform:scale(.98); }
+.bd-item h3 { font-size:16px; margin-bottom:5px; }
+.bd-item p { font-size:14px; color:#8e8e93; }
+.fab { position:fixed; bottom:30px; right:30px; width:60px; height:60px; background:#007AFF; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,122,255,.4); cursor:pointer; font-size:32px; color:#fff; border:none; z-index:99; }
+.modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:20px; overflow-y:auto; }
+.modal.active { display:flex; }
+.modal-content { background:#fff; border-radius:15px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; padding:20px; margin:auto; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.modal-header h2 { font-size:20px; }
+.close-btn { background:none; border:none; font-size:28px; cursor:pointer; color:#8e8e93; }
+.form-group { margin-bottom:15px; }
+.form-group label { display:block; margin-bottom:5px; font-weight:500; font-size:14px; color:#8e8e93; }
+.form-group input, .form-group select { width:100%; padding:10px; border:1px solid #e5e5ea; border-radius:8px; font-size:16px; background:#fff; color:#1c1c1e; }
+.btn { width:100%; padding:12px; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; margin-top:10px; }
+.btn-primary { background:#007AFF; color:#fff; }
+.btn-secondary { background:#f5f5f7; color:#1c1c1e; }
+.btn-danger { background:#ff3b30; color:#fff; }
+#reader { width:100%; margin:15px auto 0; border-radius:10px; overflow:hidden; }
+#reader video { width:100%; display:block; }
+#reader canvas.drawingBuffer { display:none; }
+.scan-zone { background:#f5f5f7; border-radius:12px; padding:14px; margin-bottom:12px; }
+.scan-zone h3 { font-size:15px; margin-bottom:8px; }
+.scan-zone .btn-secondary { background:#fff; border:1px solid #e5e5ea; }
+.scan-status { text-align:center; margin-top:10px; padding:10px; border-radius:8px; font-size:14px; }
+.scan-status.searching { background:#fff3cd; color:#856404; }
+.scan-status.success { background:#d4edda; color:#155724; }
+.scan-status.error { background:#f8d7da; color:#721c24; }
+.empty-state { text-align:center; padding:60px 20px; color:#8e8e93; }
+.image-preview { max-width:100%; max-height:200px; border-radius:10px; margin-top:10px; }
+.detail-image { width:100%; max-height:400px; object-fit:contain; border-radius:10px; margin-bottom:20px; }
+.detail-info { background:#fff; padding:20px; border-radius:10px; margin-bottom:15px; }
+.detail-row { display:flex; padding:10px 0; border-bottom:1px solid #f5f5f7; align-items:center; }
+.detail-row:last-child { border-bottom:none; }
+.detail-label { flex:0 0 100px; color:#8e8e93; font-size:14px; }
+.detail-value { flex:1; font-weight:500; }
+.detail-value select { width:100%; padding:8px; border-radius:8px; border:1px solid #e5e5ea; font-size:15px; background:#fff; color:#1c1c1e; }
+.search-results { margin-top:15px; max-height:300px; overflow-y:auto; }
+.search-result-item { padding:12px; background:#f5f5f7; border-radius:8px; margin-bottom:8px; cursor:pointer; }
+.search-result-item:active { background:#e5e5ea; }
+.search-result-item h4 { font-size:15px; margin-bottom:4px; }
+.search-result-item p { font-size:13px; color:#8e8e93; }
+.source { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; margin-top:5px; color:#fff; }
+.source-bnf { background:#007AFF; }
+.source-google { background:#ff9500; }
+.loader { display:inline-block; width:20px; height:20px; border:3px solid rgba(0,0,0,.1); border-radius:50%; border-top-color:#007AFF; animation:spin 1s ease-in-out infinite; margin-right:8px; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.auth-screen { position:fixed; top:0; left:0; right:0; bottom:0; background:linear-gradient(135deg,#007AFF,#5856D6); display:flex; align-items:center; justify-content:center; padding:20px; z-index:9999; }
+.auth-box { background:#fff; padding:30px; border-radius:15px; width:100%; max-width:400px; box-shadow:0 10px 40px rgba(0,0,0,.2); }
+.auth-box h2 { text-align:center; margin-bottom:5px; color:#1c1c1e; }
+.auth-box p { text-align:center; color:#8e8e93; margin-bottom:20px; font-size:14px; }
+.auth-toggle { text-align:center; margin-top:15px; font-size:14px; color:#8e8e93; }
+.auth-toggle a { color:#007AFF; cursor:pointer; text-decoration:underline; }
+.auth-error { background:#f8d7da; color:#721c24; padding:10px; border-radius:8px; margin-bottom:10px; font-size:14px; text-align:center; display:none; }
+.user-info { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12px; color:rgba(255,255,255,.9); }
+.user-info button { background:rgba(255,255,255,.2); border:none; color:#fff; padding:4px 10px; border-radius:5px; font-size:12px; cursor:pointer; }
+.sync-indicator { display:inline-block; width:8px; height:8px; border-radius:50%; background:#34c759; margin-left:5px; vertical-align:middle; }
+.sync-indicator.syncing { background:#ffcc00; animation:pulse 1s infinite; }
+.sync-indicator.error { background:#ff3b30; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+.banner { background:#fff3cd; color:#856404; padding:12px 20px; text-align:center; border-bottom:1px solid #ffeaa7; font-size:14px; }
+.banner button { background:#007AFF; color:#fff; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; margin-left:10px; font-size:13px; }
+</style>
+</head>
+<body>
+<!-- Écran de connexion -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-box">
+    <h2>📚 Catalogue BD</h2>
+    <p id="authSubtitle">Connectez-vous pour accéder à votre collection</p>
+    <div class="auth-error" id="authError"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="authEmail" placeholder="vous@exemple.com" autocomplete="email"></div>
+    <div class="form-group"><label>Mot de passe</label><input type="password" id="authPassword" placeholder="Minimum 6 caractères" autocomplete="current-password"></div>
+    <button type="button" class="btn btn-primary" id="authSubmit">Se connecter</button>
+    <div class="auth-toggle"><span id="authToggleText">Pas encore de compte ?</span> <a id="authToggleLink">Créer un compte</a></div>
+  </div>
+</div>
+
+<!-- Bannière de migration -->
+<div class="banner" id="migrationBanner" style="display:none;">
+  📦 Des BD locales ont été détectées.
+  <button onclick="migrateLocalData()">📥 Importer dans le cloud</button>
+  <button onclick="dismissMigration()" style="background:#8e8e93;">Ignorer</button>
+</div>
+
+<div class="header">
+  <h1>📚 Catalogue BD <span class="sync-indicator" id="syncIndicator" title="Synchronisé"></span></h1>
+  <div class="collection-selector">
+    <select id="collectionSelect" onchange="changeCollection()"><option value="">Toutes les collections</option></select>
+    <button class="btn-manage" onclick="openManageCollections()">Gérer</button>
+  </div>
+  <div class="user-info"><span id="userEmail"></span><button onclick="logout()">Déconnexion</button></div>
+</div>
+
+<div class="search-bar"><input type="text" id="searchInput" placeholder="Rechercher une BD..." oninput="filterBD()"></div>
+<div class="content" id="content"></div>
+<button class="fab" onclick="openAddBD()">+</button>
+
+<!-- Modal d'ajout/modification -->
+<div class="modal" id="addBDModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modalTitle">Ajouter une BD</h2>
+      <button class="close-btn" onclick="closeModal('addBDModal')">&times;</button>
+    </div>
+
+    <button class="btn btn-secondary" onclick="openScanner()">📷 Scanner / Saisir un ISBN</button>
+    <button class="btn btn-secondary" onclick="openTitleSearch()">🔍 Rechercher par titre</button>
+
+    <div id="scannerSection" style="display:none; margin-top:15px;">
+
+      <!-- ZONE 1 : scan -->
+      <div class="scan-zone">
+        <h3>📷 Zone 1 : Scanner</h3>
+        <button class="btn btn-primary" id="btnScan" onclick="startLiveScanner()">Scanner le code-barres (caméra)</button>
+        <button class="btn btn-secondary" id="btnStopScan" style="display:none" onclick="stopScanner()">✖ Arrêter la caméra</button>
+        <button class="btn btn-secondary" onclick="unifiedScan()">📸 Photo (code-barres ou ISBN imprimé)</button>
+        <div id="reader" style="display:none; margin-top:12px;"></div>
+        <img id="capturePreview" style="display:none; max-width:100%; max-height:220px; object-fit:contain; border-radius:10px; margin-top:12px; border:1px solid #e5e5ea;">
+      </div>
+
+      <!-- ZONE 2 : saisie ISBN (clavier ou douchette USB/Bluetooth) -->
+      <div class="scan-zone">
+        <h3>⌨️ Zone 2 : Saisir l'ISBN</h3>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="isbnInput" inputmode="numeric" autocomplete="off" placeholder="ISBN 10 ou 13 chiffres"
+                 style="flex:1; padding:10px; border:1px solid #e5e5ea; border-radius:8px; font-size:16px;"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();submitManualIsbn();}">
+          <button class="btn btn-primary" style="width:auto; margin-top:0; padding:10px 16px;" onclick="submitManualIsbn()">🔍</button>
+        </div>
+      </div>
+
+      <div id="scanStatus" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="titleSearchSection" style="display:none; margin-top:15px;">
+      <div class="form-group"><label>Titre à rechercher</label><input type="text" id="titleSearchInput" placeholder="Ex: Astérix"></div>
+      <button class="btn btn-primary" onclick="searchByTitle()">Rechercher</button>
+      <div id="titleSearchResults" class="search-results"></div>
+    </div>
+
+    <div class="form-group" style="margin-top:20px;"><label>Collection</label><select id="bdCollectionSelect"></select></div>
+    <div class="form-group"><label>Série</label><input type="text" id="bdSerie" placeholder="Ex: Astérix"></div>
+    <div class="form-group"><label>Nom de la BD</label><input type="text" id="bdNom" placeholder="Ex: Le bouclier arverne"></div>
+    <div class="form-group"><label>Éditeur</label><input type="text" id="bdEdition" placeholder="Ex: Dargaud"></div>
+    <div class="form-group"><label>Numéro de tome</label><input type="text" id="bdNumero" placeholder="Ex: 2"></div>
+    <div class="form-group"><label>Année</label><input type="text" id="bdAnnee" placeholder="Ex: 1983"></div>
+    <div class="form-group">
+      <label>Couverture personnalisée</label>
+      <input type="file" id="bdImage" accept="image/*" capture="environment" onchange="previewImage(event)">
+      <img id="imagePreview" class="image-preview" style="display:none;">
+    </div>
+
+    <button class="btn btn-primary" onclick="saveBD()">Enregistrer</button>
+    <button class="btn btn-secondary" onclick="closeModal('addBDModal')">Annuler</button>
+  </div>
+</div>
+
+<!-- Modal détail -->
+<div class="modal" id="detailModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>Détails</h2><button class="close-btn" onclick="closeModal('detailModal')">&times;</button></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- Modal gestion collections -->
+<div class="modal" id="manageCollectionsModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>Gérer les collections</h2><button class="close-btn" onclick="closeModal('manageCollectionsModal')">&times;</button></div>
+    <div class="form-group"><label>Nouvelle collection</label><input type="text" id="newCollectionName" placeholder="Nom de la collection"></div>
+    <button class="btn btn-primary" onclick="addCollection()">Ajouter</button>
+    <div style="margin-top:20px;"><h3 style="margin-bottom:10px;">Collections existantes</h3><div id="collectionsList"></div></div>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// CONFIGURATION SUPABASE
+// ==========================================
+const SUPABASE_URL = "https://pfsyvkhinpneegbncfhj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_o5g4rHK4HyBTtI35I7WIvQ_2hvjA66A";
+const GOOGLE_BOOKS_API_KEY = "AIzaSyDN4c4RMxkOWM8tw-3nnAqQdaMM59R5poY";
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// État global
+let currentUser = null;
+let collections = [];
+let bdList = [];
+let currentBDId = null;
+let scanner = null;
+let handling = false;
+let lastCaptureObjectUrl = null;
+let pendingCoverFile = null;
+let authMode = 'login';
+let realtimeChannel = null;
+
+// ==========================================
+// AUTHENTIFICATION
+// ==========================================
+function toggleAuthMode() {
+    authMode = authMode === 'login' ? 'signup' : 'login';
+    document.getElementById('authSubmit').textContent = authMode === 'login' ? 'Se connecter' : 'Créer mon compte';
+    document.getElementById('authToggleText').textContent = authMode === 'login' ? 'Pas encore de compte ?' : 'Déjà un compte ?';
+    document.getElementById('authToggleLink').textContent = authMode === 'login' ? 'Créer un compte' : 'Se connecter';
+    document.getElementById('authSubtitle').textContent = authMode === 'login' ? 'Connectez-vous pour accéder à votre collection' : 'Créez un compte pour commencer';
+    document.getElementById('authError').style.display = 'none';
+}
+
+async function submitAuth() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errorEl = document.getElementById('authError');
+    errorEl.style.display = 'none';
+
+    if (!email || !password) { errorEl.textContent = 'Veuillez remplir tous les champs'; errorEl.style.display = 'block'; return; }
+    if (password.length < 6) { errorEl.textContent = 'Le mot de passe doit faire au moins 6 caractères'; errorEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('authSubmit');
+    btn.disabled = true; btn.textContent = '...';
+
+    try {
+        let result;
+        if (authMode === 'signup') result = await sb.auth.signUp({ email, password });
+        else result = await sb.auth.signInWithPassword({ email, password });
+
+        if (result.error) throw result.error;
+        currentUser = result.data.user;
+        await onLoginSuccess();
+    } catch (err) {
+        errorEl.textContent = err.message || 'Erreur de connexion';
+        errorEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = authMode === 'login' ? 'Se connecter' : 'Créer mon compte';
+    }
+}
+
+async function logout() {
+    if (!confirm('Se déconnecter ?')) return;
+    await sb.auth.signOut();
+    currentUser = null;
+    if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+    document.getElementById('authScreen').style.display = 'flex';
+}
+
+async function onLoginSuccess() {
+    try {
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('userEmail').textContent = currentUser.email;
+        await loadAllData();
+        subscribeToChanges();
+        checkForLocalData();
+        renderBD();
+    } catch (err) {
+        document.getElementById('authScreen').style.display = 'flex';
+        const errorEl = document.getElementById('authError');
+        errorEl.textContent = 'Connecté mais erreur de chargement : ' + err.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+async function checkSession() {
+    const { data } = await sb.auth.getSession();
+    if (data.session && data.session.user) {
+        currentUser = data.session.user;
+        await onLoginSuccess();
+    }
+}
+
+// ==========================================
+// DONNÉES SUPABASE
+// ==========================================
+async function loadAllData() {
+    setSyncStatus(true);
+    try {
+        await Promise.all([loadCollections(), loadBDs()]);
+        updateCollectionSelector();
+        renderBD();
+    } finally { setSyncStatus(false); }
+}
+
+async function loadCollections() {
+    const { data, error } = await sb.from('collections').select('*').order('nom');
+    if (error) throw error;
+    collections = data || [];
+}
+
+async function loadBDs() {
+    const { data, error } = await sb.from('bd').select('*').order('serie').order('numero');
+    if (error) throw error;
+    bdList = data || [];
+}
+
+function subscribeToChanges() {
+    if (realtimeChannel) sb.removeChannel(realtimeChannel);
+    realtimeChannel = sb.channel('catalogue-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, () => loadCollections().then(updateCollectionSelector).then(renderBD))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bd' }, () => loadBDs().then(renderBD))
+        .subscribe();
+}
+
+function setSyncStatus(syncing) {
+    const ind = document.getElementById('syncIndicator');
+    if (syncing) { ind.classList.add('syncing'); ind.title = 'Synchronisation...'; }
+    else { ind.classList.remove('syncing', 'error'); ind.title = 'Synchronisé'; }
+}
+
+// ==========================================
+// COLLECTIONS CRUD
+// ==========================================
+async function addCollection() {
+    const name = document.getElementById('newCollectionName').value.trim();
+    if (!name) return;
+    setSyncStatus(true);
+    try {
+        const { error } = await sb.from('collections').insert({ user_id: currentUser.id, nom: name });
+        if (error) throw error;
+        document.getElementById('newCollectionName').value = '';
+        await loadCollections(); updateCollectionSelector(); renderCollectionsList();
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+async function renameCollection(id) {
+    const newName = prompt("Nouveau nom :");
+    if (!newName || !newName.trim()) return;
+    setSyncStatus(true);
+    try {
+        const { error } = await sb.from('collections').update({ nom: newName.trim() }).eq('id', id);
+        if (error) throw error;
+        await loadCollections(); updateCollectionSelector(); renderCollectionsList(); renderBD();
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+async function deleteCollection(id) {
+    if (!confirm('Supprimer cette collection et ses BD ?')) return;
+    setSyncStatus(true);
+    try {
+        await sb.from('bd').delete().eq('collection_id', id);
+        const { error } = await sb.from('collections').delete().eq('id', id);
+        if (error) throw error;
+        await loadCollections(); await loadBDs(); updateCollectionSelector(); renderCollectionsList(); renderBD();
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+// ==========================================
+// BD CRUD
+// ==========================================
+function openAddBD(bdId = null) {
+    stopScanner();
+    currentBDId = bdId; pendingCoverFile = null;
+    document.getElementById('modalTitle').textContent = bdId ? 'Modifier la BD' : 'Ajouter une BD';
+    ['bdSerie','bdNom','bdEdition','bdNumero','bdAnnee','isbnInput'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('scannerSection').style.display = 'none';
+    document.getElementById('titleSearchSection').style.display = 'none';
+    document.getElementById('reader').style.display = 'none';
+    document.getElementById('scanStatus').innerHTML = '';
+    document.getElementById('capturePreview').style.display = 'none';
+
+    let selectedCollectionId = document.getElementById('collectionSelect').value || '';
+    if (bdId) {
+        const bd = bdList.find(b => b.id === bdId);
+        if (bd) {
+            document.getElementById('bdSerie').value = bd.serie || '';
+            document.getElementById('bdNom').value = bd.nom;
+            document.getElementById('bdEdition').value = bd.edition || '';
+            document.getElementById('bdNumero').value = bd.numero || '';
+            document.getElementById('bdAnnee').value = bd.annee || '';
+            selectedCollectionId = bd.collection_id ? String(bd.collection_id) : '';
+            if (bd.image_url) {
+                document.getElementById('imagePreview').src = bd.image_url;
+                document.getElementById('imagePreview').style.display = 'block';
+            }
+        }
+    }
+    document.getElementById('bdCollectionSelect').innerHTML = collectionOptionsHTML(selectedCollectionId);
+    document.getElementById('addBDModal').classList.add('active');
+}
+
+async function saveBD() {
+    const serie = document.getElementById('bdSerie').value.trim();
+    const nom = document.getElementById('bdNom').value.trim();
+    const edition = document.getElementById('bdEdition').value.trim();
+    const numero = document.getElementById('bdNumero').value.trim();
+    const annee = document.getElementById('bdAnnee').value.trim();
+    const imagePreview = document.getElementById('imagePreview');
+    const collectionId = document.getElementById('bdCollectionSelect').value || null;
+
+    if (!nom || !edition) { alert('Le nom et l\'éditeur sont obligatoires'); return; }
+
+    setSyncStatus(true);
+    try {
+        let imagePath = null, imageUrl = null;
+        if (pendingCoverFile) {
+            setScanStatus('<span class="loader"></span> Envoi de la couverture...', 'searching');
+            const upload = await uploadCover(pendingCoverFile, currentBDId);
+            imagePath = upload.path; imageUrl = upload.url;
+            pendingCoverFile = null;
+        } else if (currentBDId && imagePreview.style.display !== 'none') {
+            const existing = bdList.find(b => b.id === currentBDId);
+            if (existing) { imagePath = existing.image_path; imageUrl = existing.image_url; }
+        }
+
+        const record = { user_id: currentUser.id, serie: serie || null, nom, edition, numero: numero || null, annee: annee || null, image_path: imagePath, image_url: imageUrl, collection_id: collectionId };
+
+        if (currentBDId) {
+            const { error } = await sb.from('bd').update(record).eq('id', currentBDId);
+            if (error) throw error;
+        } else {
+            record.date_ajout = new Date().toISOString();
+            const { error } = await sb.from('bd').insert(record);
+            if (error) throw error;
+        }
+        await loadBDs(); closeModal('addBDModal'); renderBD();
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+async function deleteBD(id) {
+    if (!confirm('Supprimer cette BD ?')) return;
+    setSyncStatus(true);
+    try {
+        const bd = bdList.find(b => b.id === id);
+        if (bd && bd.image_path) await sb.storage.from('covers').remove([bd.image_path]);
+        const { error } = await sb.from('bd').delete().eq('id', id);
+        if (error) throw error;
+        await loadBDs(); closeModal('detailModal'); renderBD();
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+async function changeDetailCollection(bdId, collectionValue) {
+    setSyncStatus(true);
+    try {
+        const { error } = await sb.from('bd').update({ collection_id: collectionValue || null }).eq('id', bdId);
+        if (error) throw error;
+        await loadBDs(); renderBD(); showDetail(bdId);
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+// ==========================================
+// UPLOAD IMAGE COMPRESSÉE
+// ==========================================
+async function uploadCover(file, existingBdId = null) {
+    const compressedBlob = await compressImageFile(file, 1200, 0.75);
+    const bdId = existingBdId || 'new-' + Date.now();
+    const path = `${currentUser.id}/${bdId}-${Date.now()}.jpg`;
+    const { error } = await sb.storage.from('covers').upload(path, compressedBlob, { contentType: 'image/jpeg', upsert: true });
+    if (error) throw error;
+    const { data } = sb.storage.from('covers').getPublicUrl(path);
+    return { path, url: data.publicUrl };
+}
+
+function compressImageFile(file, maxDimension = 1200, quality = 0.75) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Compression échouée')), 'image/jpeg', quality);
+            };
+            img.onerror = reject; img.src = e.target.result;
+        };
+        reader.onerror = reject; reader.readAsDataURL(file);
+    });
+}
+
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        pendingCoverFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => { document.getElementById('imagePreview').src = e.target.result; document.getElementById('imagePreview').style.display = 'block'; };
+        reader.readAsDataURL(file);
+    }
+}
+
+// ==========================================
+// AFFICHAGE
+// ==========================================
+function collectionOptionsHTML(selectedId) {
+    return '<option value="">Aucune collection</option>' + collections.map(c => {
+        const sel = String(selectedId || '') === String(c.id) ? ' selected' : '';
+        return `<option value="${c.id}"${sel}>${escapeHtml(c.nom)}</option>`;
+    }).join('');
+}
+
+function updateCollectionSelector() {
+    const select = document.getElementById('collectionSelect');
+    const current = select.value;
+    select.innerHTML = '<option value="">Toutes les collections</option>' + collections.map(c => `<option value="${c.id}">${escapeHtml(c.nom)}</option>`).join('');
+    select.value = current;
+}
+
+function changeCollection() { renderBD(); }
+
+function renderBD() {
+    const content = document.getElementById('content');
+    const collectionId = document.getElementById('collectionSelect').value;
+    const searchText = document.getElementById('searchInput').value.toLowerCase();
+    let filteredBD = collectionId ? bdList.filter(b => String(b.collection_id) === String(collectionId)) : bdList;
+    if (searchText) {
+        filteredBD = filteredBD.filter(b =>
+            (b.nom||'').toLowerCase().includes(searchText) || (b.serie&&b.serie.toLowerCase().includes(searchText)) ||
+            (b.edition||'').toLowerCase().includes(searchText) || (b.numero&&b.numero.toLowerCase().includes(searchText)) ||
+            (b.annee&&b.annee.toLowerCase().includes(searchText))
+        );
+    }
+    if (filteredBD.length === 0) {
+        content.innerHTML = `<div class="empty-state"><p>${searchText ? 'Aucune BD trouvée pour "'+escapeHtml(searchText)+'"' : 'Aucune BD. Appuyez sur + pour en ajouter.'}</p></div>`;
+        return;
+    }
+    const groups = {};
+    filteredBD.forEach(bd => { const key = bd.serie || 'Hors série'; if (!groups[key]) groups[key] = []; groups[key].push(bd); });
+    const sortedKeys = Object.keys(groups).sort((a,b) => a==='Hors série'?1:b==='Hors série'?-1:a.localeCompare(b,'fr'));
+    content.innerHTML = sortedKeys.map(key => {
+        const bds = groups[key].sort((a,b) => (a.numero?parseInt(a.numero):999)-(b.numero?parseInt(b.numero):999));
+        return `<div class="serie-group"><div class="serie-header"><h2>📚 ${escapeHtml(key)}</h2><span class="serie-count">${bds.length}</span></div>${bds.map(bd=>`<div class="bd-item" onclick="showDetail('${bd.id}')"><h3>${escapeHtml(bd.nom)}</h3>${bd.numero?`<p>Tome ${escapeHtml(bd.numero)}</p>`:''}</div>`).join('')}</div>`;
+    }).join('');
+}
+
+function filterBD() { renderBD(); }
+
+function showDetail(id) {
+    const bd = bdList.find(b => b.id === id); if (!bd) return;
+    document.getElementById('detailContent').innerHTML = `
+        ${bd.image_url ? `<img src="${bd.image_url}" class="detail-image" onerror="this.style.display='none'">` : ''}
+        <div class="detail-info">
+            ${bd.serie ? `<div class="detail-row"><span class="detail-label">Série</span><span class="detail-value" style="color:#007AFF">${escapeHtml(bd.serie)}</span></div>` : ''}
+            <div class="detail-row"><span class="detail-label">Nom</span><span class="detail-value">${escapeHtml(bd.nom)}</span></div>
+            <div class="detail-row"><span class="detail-label">Éditeur</span><span class="detail-value">${escapeHtml(bd.edition||'')}</span></div>
+            ${bd.numero ? `<div class="detail-row"><span class="detail-label">Tome</span><span class="detail-value">${escapeHtml(bd.numero)}</span></div>` : ''}
+            ${bd.annee ? `<div class="detail-row"><span class="detail-label">Année</span><span class="detail-value">${escapeHtml(bd.annee)}</span></div>` : ''}
+            <div class="detail-row"><span class="detail-label">Collection</span><span class="detail-value"><select onchange="changeDetailCollection('${bd.id}',this.value)">${collectionOptionsHTML(bd.collection_id)}</select></span></div>
+            <div class="detail-row"><span class="detail-label">Ajouté le</span><span class="detail-value">${new Date(bd.date_ajout).toLocaleDateString('fr-FR')}</span></div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddBD('${bd.id}');closeModal('detailModal');">Modifier</button>
+        <button class="btn btn-danger" onclick="deleteBD('${bd.id}')">Supprimer</button>`;
+    document.getElementById('detailModal').classList.add('active');
+}
+
+function openManageCollections() { document.getElementById('manageCollectionsModal').classList.add('active'); renderCollectionsList(); }
+
+function renderCollectionsList() {
+    const list = document.getElementById('collectionsList');
+    if (!collections.length) { list.innerHTML = '<p style="color:#8e8e93">Aucune collection</p>'; return; }
+    list.innerHTML = collections.map(c => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#f5f5f7;border-radius:8px;margin-bottom:8px"><span>${escapeHtml(c.nom)}</span><div><button onclick="renameCollection('${c.id}')" style="background:#007AFF;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;margin-right:5px">✏️</button><button onclick="deleteCollection('${c.id}')" style="background:#ff3b30;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer">🗑️</button></div></div>`).join('');
+}
+
+// ==========================================
+// MIGRATION DONNÉES LOCALES
+// ==========================================
+function checkForLocalData() {
+    const localBD = JSON.parse(localStorage.getItem('bd')||'[]');
+    const localCol = JSON.parse(localStorage.getItem('collections')||'[]');
+    if (localBD.length || localCol.length) document.getElementById('migrationBanner').style.display = 'block';
+}
+
+function dismissMigration() {
+    if (confirm('Supprimer les données locales ?')) { localStorage.removeItem('bd'); localStorage.removeItem('collections'); document.getElementById('migrationBanner').style.display = 'none'; }
+}
+
+async function migrateLocalData() {
+    const localBD = JSON.parse(localStorage.getItem('bd')||'[]');
+    const localCol = JSON.parse(localStorage.getItem('collections')||'[]');
+    if (!localBD.length && !localCol.length) { alert('Aucune donnée locale.'); return; }
+    if (!confirm(`Importer ${localCol.length} collection(s) et ${localBD.length} BD ?`)) return;
+    setSyncStatus(true);
+    try {
+        const colMap = {};
+        for (const c of localCol) { const {data,error} = await sb.from('collections').insert({user_id:currentUser.id,nom:c.nom}).select().single(); if(error)throw error; colMap[c.id]=data.id; }
+        for (const bd of localBD) {
+            const rec = { user_id:currentUser.id, serie:bd.serie||null, nom:bd.nom, edition:bd.edition||'', numero:bd.numero||null, annee:bd.annee||null, image_path:null, image_url:null, collection_id:bd.collectionId?colMap[bd.collectionId]||null:null, date_ajout:bd.dateAjout||new Date().toISOString() };
+            if (bd.imageData && bd.imageData.startsWith('data:image')) {
+                try { const blob = await dataURLtoBlob(bd.imageData); const comp = await compressImageFile(blob,1200,0.75); const up = await uploadCover(comp); rec.image_path=up.path; rec.image_url=up.url; } catch(e) {}
+            }
+            const {error} = await sb.from('bd').insert(rec); if(error)throw error;
+        }
+        localStorage.removeItem('bd'); localStorage.removeItem('collections');
+        document.getElementById('migrationBanner').style.display = 'none';
+        await loadAllData(); alert('✅ Migration terminée !');
+    } catch(err) { alert('Erreur: '+err.message); } finally { setSyncStatus(false); }
+}
+
+function dataURLtoBlob(dataurl) {
+    return new Promise((resolve,reject) => { try { const arr=dataurl.split(','),mime=arr[0].match(/:(.*?);/)[1],bstr=atob(arr[1]),u8=new Uint8Array(bstr.length); let n=bstr.length; while(n--)u8[n]=bstr.charCodeAt(n); resolve(new Blob([u8],{type:mime})); } catch(e){reject(e);} });
+}
+
+// ==========================================
+// SCAN / ISBN : OUTILS COMMUNS
+// ==========================================
+function openScanner() {
+    document.getElementById('titleSearchSection').style.display = 'none';
+    document.getElementById('scannerSection').style.display = 'block';
+    document.getElementById('reader').style.display = 'none';
+    document.getElementById('scanStatus').innerHTML = '';
+    document.getElementById('capturePreview').style.display = 'none';
+}
+
+function normalizeBarcode(code) { return (code||'').replace(/[^0-9Xx]/g,'').trim(); }
+function setScanStatus(msg,type){const s=document.getElementById('scanStatus');s.className='scan-status '+(type||'');s.innerHTML=msg;}
+
+function isValidIsbn13(s) {
+    if (!/^97[89]\d{10}$/.test(s)) return false;
+    let sum = 0;
+    for (let i = 0; i < 12; i++) sum += +s[i] * (i % 2 ? 3 : 1);
+    return (10 - (sum % 10)) % 10 === +s[12];
+}
+function isValidIsbn10(s) {
+    if (!/^\d{9}[\dX]$/.test(s)) return false;
+    let sum = 0;
+    for (let i = 0; i < 10; i++) sum += (s[i] === 'X' ? 10 : +s[i]) * (10 - i);
+    return sum % 11 === 0;
+}
+function isbn10to13(s) {
+    const b = '978' + s.slice(0, 9);
+    let sum = 0;
+    for (let i = 0; i < 12; i++) sum += +b[i] * (i % 2 ? 3 : 1);
+    return b + ((10 - (sum % 10)) % 10);
+}
+// Renvoie un ISBN-13 valide, sinon null
+function normalizeIsbn(raw) {
+    const c = normalizeBarcode(raw).toUpperCase();
+    if (isValidIsbn13(c)) return c;
+    if (isValidIsbn10(c)) return isbn10to13(c);
+    return null;
+}
+
+function handleIsbn(isbn) {
+    setScanStatus('✅ ISBN détecté : ' + isbn, 'success');
+    searchBookByISBN(isbn);
+    document.getElementById('bdSerie')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ==========================================
+// ZONE 2 : SAISIE MANUELLE / DOUCHETTE
+// ==========================================
+function submitManualIsbn() {
+    const input = document.getElementById('isbnInput');
+    const isbn = normalizeIsbn(input.value);
+    if (!isbn) { setScanStatus('❌ ISBN invalide (vérifiez les chiffres)', 'error'); return; }
+    input.value = '';
+    handleIsbn(isbn);
+}
+
+// ==========================================
+// ZONE 1 : SCAN CAMÉRA (iOS, Android, Windows, macOS)
+// ==========================================
+async function stopScanner() {
+    stopWebcamPhoto();
+    const s = scanner; scanner = null;
+    if (s) { try { await s.stop(); } catch(e) {} try { s.clear(); } catch(e) {} }
+    const el = document.getElementById('reader');
+    if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+    const b1 = document.getElementById('btnScan'), b2 = document.getElementById('btnStopScan');
+    if (b1) b1.style.display = '';
+    if (b2) b2.style.display = 'none';
+}
+
+// Firefox / Safari (pas de BarcodeDetector natif) : Quagga2 en direct, avec web workers.
+// Plus rapide que le décodeur JS de Html5Qrcode pour les codes-barres EAN-13.
+function startQuaggaScanner(readerEl) {
+    return new Promise((resolve) => {
+        const onDetected = async (res) => {
+            if (handling) return;
+            const isbn = normalizeIsbn(res?.codeResult?.code);
+            if (!isbn) return;                      // ignore tout ce qui n'est pas un ISBN valide
+            handling = true;
+            if (navigator.vibrate) navigator.vibrate(200);
+            await stopScanner();
+            handleIsbn(isbn);
+            handling = false;
+        };
+        Quagga.init({
+            inputStream: {
+                type: 'LiveStream',
+                target: readerEl,
+                constraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                area: { top: '20%', right: '5%', left: '5%', bottom: '20%' }
+            },
+            locator: { patchSize: 'medium', halfSample: true },
+            numOfWorkers: Math.min(4, navigator.hardwareConcurrency || 2),
+            frequency: 10,
+            decoder: { readers: ['ean_reader'] },
+            locate: true
+        }, (err) => {
+            if (err) {
+                readerEl.style.display = 'none'; readerEl.innerHTML = '';
+                const denied = err?.name === 'NotAllowedError' || /permission|denied/i.test(String(err));
+                setScanStatus(denied
+                    ? '❌ Accès caméra refusé. Autorisez la caméra pour ce site dans les réglages du navigateur.'
+                    : '❌ Scanner indisponible. Utilisez la zone 2.', 'error');
+                return resolve();
+            }
+            Quagga.onDetected(onDetected);
+            Quagga.start();
+            scanner = {
+                stop: async () => { try { Quagga.offDetected(onDetected); } catch(e) {} try { await Quagga.stop(); } catch(e) {} },
+                clear: () => {}
+            };
+            document.getElementById('btnScan').style.display = 'none';
+            document.getElementById('btnStopScan').style.display = '';
+            setScanStatus('📷 Scanner actif. Placez le code-barres à 20-30 cm, bien éclairé', 'searching');
+            resolve();
+        });
+    });
+}
+
+async function startLiveScanner() {
+    if (scanner) return;
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setScanStatus('❌ Caméra indisponible (HTTPS requis). Utilisez la zone 2.', 'error');
+        return;
+    }
+    const readerEl = document.getElementById('reader');
+    readerEl.style.display = 'block'; readerEl.innerHTML = '';
+    setScanStatus('📷 Démarrage caméra...', 'searching');
+
+    if (!('BarcodeDetector' in window) && window.Quagga) { await startQuaggaScanner(readerEl); return; }
+
+    const instance = new Html5Qrcode('reader', {
+        formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A],
+        useBarCodeDetectorIfSupported: true,   // natif si dispo (Chrome/Edge), sinon décodeur JS (Safari/Firefox)
+        verbose: false
+    });
+    const config = { fps: 10, qrbox: (w) => ({ width: Math.floor(Math.min(w, 400) * 0.9), height: 140 }) };
+
+    const onSuccess = async (text) => {
+        if (handling) return;
+        const isbn = normalizeIsbn(text);
+        if (!isbn) return;                      // ignore prix, add-ons, codes non-ISBN
+        handling = true;
+        if (navigator.vibrate) navigator.vibrate(200);
+        await stopScanner();
+        handleIsbn(isbn);
+        handling = false;
+    };
+
+    try {
+        try {
+            await instance.start({ facingMode: 'environment' }, config, onSuccess, () => {});
+        } catch (e) {
+            if (e?.name === 'NotAllowedError' || /permission/i.test(String(e))) throw e;
+            const cams = await Html5Qrcode.getCameras();     // PC sans caméra "arrière"
+            if (!cams.length) throw new Error('Aucune caméra');
+            await instance.start(cams[cams.length - 1].id, config, onSuccess, () => {});
+        }
+        scanner = instance;
+        document.getElementById('btnScan').style.display = 'none';
+        document.getElementById('btnStopScan').style.display = '';
+        setScanStatus('📷 Scanner actif. Placez le code-barres devant la caméra', 'searching');
+    } catch (err) {
+        readerEl.style.display = 'none'; readerEl.innerHTML = '';
+        const denied = err?.name === 'NotAllowedError' || /permission/i.test(String(err));
+        setScanStatus(denied
+            ? '❌ Accès caméra refusé. Autorisez la caméra pour ce site dans les réglages du navigateur.'
+            : '❌ Scanner indisponible. Utilisez la zone 2.', 'error');
+    }
+}
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopScanner(); });
+
+// ==========================================
+// ZONE 1 (bis) : PHOTO → CODE-BARRES + OCR
+// ==========================================
+function loadImage(src) { return new Promise((res,rej) => { const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=src; }); }
+
+function imageToCanvas(img, maxSide, rotation) {
+    const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+    const scale=Math.min(1,maxSide/Math.max(w,h)), dw=Math.round(w*scale), dh=Math.round(h*scale);
+    const canvas=document.createElement('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
+    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+    if(rotation===90||rotation===270){canvas.width=dh;canvas.height=dw;ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(rotation*Math.PI/180);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);}
+    else{canvas.width=dw;canvas.height=dh;ctx.drawImage(img,0,0,dw,dh);}
+    return canvas;
+}
+
+async function detectWithBarcodeDetector(canvas) {
+    if(!('BarcodeDetector' in window))return null;
+    let fmts=['ean_13','ean_8','code_128','code_39','upc_a','upc_e'];
+    try{const sup=await BarcodeDetector.getSupportedFormats();if(sup&&sup.length)fmts=fmts.filter(f=>sup.includes(f));}catch(e){}
+    const det=new BarcodeDetector(fmts.length?{formats:fmts}:undefined);
+    const bars=await det.detect(canvas);
+    if(!bars||!bars.length)return null;
+    const cands=bars.map(b=>normalizeBarcode(b.rawValue)).filter(Boolean);
+    if(!cands.length)return null;
+    return cands.find(c=>c.length===13&&(c.startsWith('978')||c.startsWith('979')))||cands.find(c=>c.length===13)||cands.find(c=>c.length===10)||cands[0];
+}
+
+function decodeWithQuagga(canvas) {
+    return new Promise((res,rej) => {
+        if(!window.Quagga)return rej(new Error('Quagga non chargé'));
+        const url=canvas.toDataURL('image/jpeg',0.92); let done=false;
+        const timer=setTimeout(()=>{if(!done){done=true;rej(new Error('Quagga timeout'));}},20000);
+        try{window.Quagga.decodeSingle({src:url,numOfWorkers:0,locate:true,locator:{patchSize:'medium',halfSample:false},decoder:{readers:['ean_reader','ean_8_reader','upc_reader','code_128_reader','code_39_reader']}},function(r){
+            if(done)return;done=true;clearTimeout(timer);
+            const code=r&&r.codeResult?normalizeBarcode(r.codeResult.code):'';
+            code?res(code):rej(new Error('Aucun code Quagga'));
+        });}catch(e){if(!done){done=true;clearTimeout(timer);rej(e);}}
+    });
+}
+
+async function detectBarcodeAllRotations(img) {
+    const attempts=[{scale:1600,rotations:[0,90]},{scale:2200,rotations:[180,270]}];
+    for(const att of attempts){for(const rot of att.rotations){
+        const canvas=imageToCanvas(img,att.scale,rot);
+        if('BarcodeDetector' in window){try{const c=await detectWithBarcodeDetector(canvas);if(c)return{code:c,method:'Code-barres (natif)'};}catch(e){}}
+        try{const c=await decodeWithQuagga(canvas);if(c)return{code:c,method:'Code-barres (Quagga2)'};}catch(e){}
+    }}
+    return null;
+}
+
+async function detectISBNOcr(file) {
+    if(!window.Tesseract){await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');}
+    const worker=await Tesseract.createWorker('fra+eng',1,{logger:m=>{if(m.status==='recognizing text')setScanStatus(`<span class="loader"></span> OCR... ${Math.round(m.progress*100)}%`,'searching');}});
+    const {data}=await worker.recognize(file); await worker.terminate();
+    return extractISBN(data.text);
+}
+
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+
+function extractISBN(text) {
+    if(!text)return null;
+    const cleaned=text.replace(/[^0-9Xx\s\-]/g,' ');
+    const m13=cleaned.match(/(?:978|979)[\s\-]*\d[\s\-]*\d{2,5}[\s\-]*\d{2,7}[\s\-]*\d/);
+    if(m13){const isbn=m13[0].replace(/[\s\-]/g,'');if(isbn.length===13)return isbn;}
+    const m10=cleaned.match(/\b\d[\s\-]*\d{2,7}[\s\-]*\d{2,7}[\s\-]*[\dXx]\b/);
+    if(m10){const isbn=m10[0].replace(/[\s\-]/g,'');if(isbn.length===10)return isbn.toUpperCase();}
+    const digits=text.replace(/\D/g,'');
+    if(digits.length>=13){const c=digits.substring(0,13);if(c.startsWith('978')||c.startsWith('979'))return c;}
+    if(digits.length>=10)return digits.substring(0,10).toUpperCase();
+    return null;
+}
+
+// Écran tactile (téléphone/tablette) = appareil photo natif via <input capture>
+// Ordinateur (Mac/Windows) = webcam via getUserMedia (l'attribut capture y est ignoré)
+function isTouchDevice(){ return window.matchMedia('(pointer: coarse)').matches; }
+
+async function analyzeImageFile(file) {
+    if(lastCaptureObjectUrl){try{URL.revokeObjectURL(lastCaptureObjectUrl);}catch(err){}}
+    lastCaptureObjectUrl=URL.createObjectURL(file);
+    const preview=document.getElementById('capturePreview');preview.src=lastCaptureObjectUrl;preview.style.display='block';
+    setScanStatus('<span class="loader"></span> Analyse du code-barres...','searching');
+    let decoded=null,method='';
+    try{
+        const img=await loadImage(lastCaptureObjectUrl);
+        // 1) Code-barres d'abord (rapide). 2) OCR seulement si rien trouvé (lent).
+        try{const r=await detectBarcodeAllRotations(img);if(r){decoded=r.code;method=r.method;}}catch(e){}
+        if(!decoded){
+            setScanStatus('<span class="loader"></span> Code-barres non lu, lecture du texte (OCR)...','searching');
+            try{const t=await detectISBNOcr(file);if(t){decoded=t;method='OCR (texte imprimé)';}}catch(e){}
+        }
+        if(decoded){
+            decoded=normalizeIsbn(decoded)||normalizeBarcode(decoded);
+            if(navigator.vibrate)navigator.vibrate(200);
+            setScanStatus(`✅ ISBN détecté : ${decoded}<br><small>Méthode : ${method}</small>`,'success');
+            searchBookByISBN(decoded);
+        } else {
+            setScanStatus('⚠️ Aucun ISBN détecté. Saisissez-le dans la zone 2.','error');
+            document.getElementById('isbnInput')?.focus();
+        }
+    }catch(err){setScanStatus('❌ Erreur d\'analyse','error');}
+}
+
+function pickPhotoFile() {
+    const input=document.createElement('input');input.type='file';input.accept='image/*';input.capture='environment';input.style.display='none';document.body.appendChild(input);
+    input.onchange=async(e)=>{
+        const file=e.target.files[0];
+        document.body.removeChild(input);
+        if(file) await analyzeImageFile(file);
+    };
+    input.click();
+}
+
+let photoStream = null;
+function stopWebcamPhoto() {
+    if (photoStream) { photoStream.getTracks().forEach(t => t.stop()); photoStream = null; }
+}
+
+async function webcamPhoto() {
+    const readerEl = document.getElementById('reader');
+    try {
+        photoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    } catch (e) {
+        const denied = e?.name === 'NotAllowedError';
+        setScanStatus(denied
+            ? '❌ Accès webcam refusé. Autorisez la caméra pour ce site (Safari/Chrome → Réglages du site, et Réglages Système → Confidentialité → Caméra).'
+            : '❌ Webcam introuvable. Choisissez une image dans vos fichiers.', 'error');
+        if (!denied) pickPhotoFile();
+        return;
+    }
+    readerEl.innerHTML = ''; readerEl.style.display = 'block';
+    const video = document.createElement('video');
+    video.srcObject = photoStream; video.muted = true; video.setAttribute('playsinline', ''); video.style.width = '100%';
+    const bar = document.createElement('div'); bar.style.cssText = 'display:flex;gap:8px;';
+    const ok = document.createElement('button'); ok.className = 'btn btn-primary'; ok.textContent = '📸 Capturer';
+    const cancel = document.createElement('button'); cancel.className = 'btn btn-secondary'; cancel.textContent = 'Annuler';
+    bar.append(ok, cancel); readerEl.append(video, bar);
+    await video.play();
+    setScanStatus('📷 Cadrez le code-barres (ou le texte ISBN), puis cliquez sur Capturer', 'searching');
+
+    const close = () => { stopWebcamPhoto(); readerEl.style.display = 'none'; readerEl.innerHTML = ''; };
+    cancel.onclick = () => { close(); setScanStatus('', ''); };
+    ok.onclick = () => {
+        const c = document.createElement('canvas');
+        c.width = video.videoWidth; c.height = video.videoHeight;
+        c.getContext('2d').drawImage(video, 0, 0);
+        c.toBlob(async (b) => { close(); if (b) await analyzeImageFile(new File([b], 'photo.jpg', { type: 'image/jpeg' })); }, 'image/jpeg', 0.92);
+    };
+}
+
+async function unifiedScan() {
+    await stopScanner();
+    if (isTouchDevice() || !navigator.mediaDevices?.getUserMedia || !window.isSecureContext) pickPhotoFile();
+    else await webcamPhoto();
+}
+
+// ==========================================
+// RECHERCHE ISBN / TITRE
+// ==========================================
+async function searchBookByISBN(isbn) {
+    setScanStatus('<span class="loader"></span> Recherche...','searching');
+    try{
+        if(GOOGLE_BOOKS_API_KEY&&GOOGLE_BOOKS_API_KEY!=="VOTRE_CLE_API_ICI"){
+            try{const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${GOOGLE_BOOKS_API_KEY}`);
+            if(r.ok){const d=await r.json();if(d.items&&d.items.length>0){const vi=d.items[0].volumeInfo;fillFormFromGoogle(vi);const hasPub=!!vi.publisher;const hasCover=!!(vi.imageLinks&&(vi.imageLinks.large||vi.imageLinks.medium||vi.imageLinks.thumbnail));if(hasPub&&hasCover){setScanStatus('✅ BD trouvée via Google Books !','success');return;}setScanStatus('🔄 Données partielles, complément...','searching');}}}catch(e){}}
+        try{const r=await fetch(`https://openlibrary.org/isbn/${isbn}.json`);if(r.ok){const d=await r.json();if(d&&d.title){fillFormFromOpenLibrary(d);setScanStatus('✅ BD trouvée via Open Library !','success');return;}}}catch(e){}
+        try{const r=await fetch(`https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&query=isbn+all+"${isbn}"&maximumRecords=1&recordSchema=dc`);if(r.ok){const t=await r.text();if(fillFormFromBnF(t)){setScanStatus('✅ BD trouvée via BnF !','success');return;}}}catch(e){}
+        setScanStatus('⚠️ BD non trouvée. Remplissez manuellement.','error');
+    }catch(e){setScanStatus('❌ Erreur connexion','error');}
+}
+
+function fillFormFromGoogle(vi) {
+    const{serie,nom}=extraireSerie(vi.title||'');
+    if(serie&&!document.getElementById('bdSerie').value)document.getElementById('bdSerie').value=serie;
+    if(!document.getElementById('bdNom').value)document.getElementById('bdNom').value=nom;
+    if(!document.getElementById('bdEdition').value&&vi.publisher)document.getElementById('bdEdition').value=vi.publisher;
+    if(vi.publishedDate&&!document.getElementById('bdAnnee').value)document.getElementById('bdAnnee').value=vi.publishedDate.substring(0,4);
+    if(!document.getElementById('bdNumero').value){const m=(vi.title||'').match(/(?:tome|t\.|vol|n°|#)\s*(\d+)/i);if(m)document.getElementById('bdNumero').value=m[1];}
+    if(vi.imageLinks){const url=(vi.imageLinks.large||vi.imageLinks.medium||vi.imageLinks.thumbnail||'').replace('http://','https://');if(url)downloadRemoteImageToCover(url);}
+    else{const isbn13=vi.industryIdentifiers?.find(id=>id.type==='ISBN_13')?.identifier;if(isbn13){fetch(`https://openlibrary.org/isbn/${isbn13}.json`).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.covers&&d.covers.length)downloadRemoteImageToCover(`https://covers.openlibrary.org/b/id/${d.covers[0]}-L.jpg`);}).catch(()=>{});}}
+}
+
+function fillFormFromOpenLibrary(data) {
+    const{serie,nom}=extraireSerie(data.title||'');
+    if(serie&&!document.getElementById('bdSerie').value)document.getElementById('bdSerie').value=serie;
+    if(!document.getElementById('bdNom').value)document.getElementById('bdNom').value=nom;
+    if(data.publishers&&data.publishers.length&&!document.getElementById('bdEdition').value){const p=data.publishers[0];document.getElementById('bdEdition').value=typeof p==='string'?p:(p.name||'');}
+    if(data.publish_date&&!document.getElementById('bdAnnee').value){const m=data.publish_date.match(/\d{4}/);if(m)document.getElementById('bdAnnee').value=m[0];}
+    if(data.covers&&data.covers.length&&document.getElementById('imagePreview').style.display==='none')downloadRemoteImageToCover(`https://covers.openlibrary.org/b/id/${data.covers[0]}-L.jpg`);
+}
+
+function fillFormFromBnF(xmlText) {
+    const parser=new DOMParser(),doc=parser.parseFromString(xmlText,"text/xml");
+    const title=doc.getElementsByTagName('dc:title')[0]?.textContent,publisher=doc.getElementsByTagName('dc:publisher')[0]?.textContent,date=doc.getElementsByTagName('dc:date')[0]?.textContent;
+    if(!title)return false;
+    const{serie,nom}=extraireSerie(title);
+    if(serie&&!document.getElementById('bdSerie').value)document.getElementById('bdSerie').value=serie;
+    if(!document.getElementById('bdNom').value)document.getElementById('bdNom').value=nom;
+    if(publisher&&!document.getElementById('bdEdition').value)document.getElementById('bdEdition').value=publisher;
+    if(date&&!document.getElementById('bdAnnee').value){const m=date.match(/\d{4}/);if(m)document.getElementById('bdAnnee').value=m[0];}
+    return true;
+}
+
+function extraireSerie(titre) {
+    const parties=titre.split('/');const t=parties[0].trim().replace(/[\s.:]+$/,'');
+    for(const sep of['. ',' : ',': ',' - ']){const i=t.indexOf(sep);if(i>2){const s=t.substring(0,i).trim(),n=t.substring(i+sep.length).trim();if(s&&!s.toLowerCase().includes('tome')&&s.length>2)return{serie:s,nom:n};}}
+    return{serie:null,nom:t};
+}
+
+async function downloadRemoteImageToCover(imageURL) {
+    try{let blob;try{const r=await fetch(imageURL);if(!r.ok)throw new Error(r.status);blob=await r.blob();}catch(e){const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(imageURL)}`);if(!r.ok)throw new Error(r.status);blob=await r.blob();}
+    if(blob.size<5000)return;const file=new File([blob],'cover.jpg',{type:blob.type||'image/jpeg'});pendingCoverFile=file;
+    const reader=new FileReader();reader.onloadend=()=>{document.getElementById('imagePreview').src=reader.result;document.getElementById('imagePreview').style.display='block';};reader.readAsDataURL(blob);
+    }catch(e){console.warn('Cover download failed:',e);}
+}
+
+function openTitleSearch(){stopScanner();document.getElementById('scannerSection').style.display='none';document.getElementById('titleSearchSection').style.display='block';document.getElementById('titleSearchInput').value='';document.getElementById('titleSearchResults').innerHTML='';document.getElementById('titleSearchInput').focus();}
+
+async function searchByTitle() {
+    const titre=document.getElementById('titleSearchInput').value.trim();if(!titre)return;
+    const div=document.getElementById('titleSearchResults');div.innerHTML='<p style="text-align:center"><span class="loader"></span> Recherche...</p>';
+    let all=[];
+    try{const r=await fetch(`https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&query=title+all+"${encodeURIComponent(titre)}"&maximumRecords=10&recordSchema=dc`);if(r.ok){const doc=new DOMParser().parseFromString(await r.text(),"text/xml");Array.from(doc.getElementsByTagName('record')).forEach(rec=>{const t=rec.getElementsByTagName('dc:title')[0]?.textContent,p=rec.getElementsByTagName('dc:publisher')[0]?.textContent,d=rec.getElementsByTagName('dc:date')[0]?.textContent;if(t)all.push({titre:t,editeur:p||'',annee:d?d.match(/\d{4}/)?.[0]:'',source:'BnF'});});}}catch(e){console.warn('BnF:',e);}
+    if(GOOGLE_BOOKS_API_KEY&&GOOGLE_BOOKS_API_KEY!=="VOTRE_CLE_API_ICI"){try{const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(titre)}&key=${GOOGLE_BOOKS_API_KEY}&maxResults=10&langRestrict=fr`);if(r.ok){const d=await r.json();if(d.items)d.items.forEach(i=>{const v=i.volumeInfo;all.push({titre:v.title||'',editeur:v.publisher||'',annee:v.publishedDate?v.publishedDate.substring(0,4):'',source:'Google Books',volumeInfo:v});});}}catch(e){}}
+    if(!all.length){div.innerHTML='<p style="text-align:center;color:#8e8e93">Aucun résultat</p>';return;}
+    window.__titleResults=all;
+    div.innerHTML=all.map((r,i)=>`<div class="search-result-item" onclick="selectSearchResult(${i})"><h4>${escapeHtml(r.titre)}</h4><p>${escapeHtml(r.editeur)}${r.annee?' • '+escapeHtml(r.annee):''}</p><span class="source source-${r.source==='BnF'?'bnf':'google'}">${escapeHtml(r.source)}</span></div>`).join('');
+}
+
+function selectSearchResult(index) {
+    const r=window.__titleResults[index];if(!r)return;
+    const{serie,nom}=extraireSerie(r.titre);if(serie)document.getElementById('bdSerie').value=serie;
+    document.getElementById('bdNom').value=nom;document.getElementById('bdEdition').value=r.editeur||'';
+    if(r.annee)document.getElementById('bdAnnee').value=r.annee;
+    const m=r.titre.match(/(?:tome|t\.|vol|n°|#)\s*(\d+)/i);if(m)document.getElementById('bdNumero').value=m[1];
+    if(r.volumeInfo&&r.volumeInfo.imageLinks){const url=(r.volumeInfo.imageLinks.large||r.volumeInfo.imageLinks.medium||r.volumeInfo.imageLinks.thumbnail||'').replace('http://','https://');if(url)downloadRemoteImageToCover(url);}
+    document.getElementById('titleSearchSection').style.display='none';setScanStatus('✅ BD sélectionnée !','success');
+}
+
+// ==========================================
+// MODALS & UTILS
+// ==========================================
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+    if(modalId==='addBDModal'){
+        stopScanner();
+        if(lastCaptureObjectUrl){try{URL.revokeObjectURL(lastCaptureObjectUrl);}catch(e){}lastCaptureObjectUrl=null;}
+        document.getElementById('scannerSection').style.display='none';
+        document.getElementById('scanStatus').innerHTML='';
+        document.getElementById('capturePreview').style.display='none';
+        pendingCoverFile=null;
+    }
+}
+
+function escapeHtml(t){return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ==========================================
+// DÉMARRAGE
+// ==========================================
+document.getElementById('authSubmit').addEventListener('click', submitAuth);
+document.getElementById('authToggleLink').addEventListener('click', toggleAuthMode);
+document.getElementById('authPassword').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();submitAuth();} });
+document.getElementById('authEmail').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();submitAuth();} });
+
+window.addEventListener('DOMContentLoaded', async () => {
+    await new Promise(r => setTimeout(r, 300));
+    checkSession();
+});
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+}
+</script>
+</body>
+</html>
