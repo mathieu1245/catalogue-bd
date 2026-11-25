@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#007AFF">
-<title>Catalogue BD</title>
+<title>Ma Collection</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-title" content="Catalogue BD">
+<meta name="apple-mobile-web-app-title" content="Ma Collection">
 
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
@@ -20,6 +20,9 @@
 body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f5f5f7; color:#1c1c1e; padding-bottom:80px; }
 .header { background:#007AFF; color:#fff; padding:20px; position:sticky; top:0; z-index:100; box-shadow:0 2px 10px rgba(0,0,0,.1); }
 .header h1 { font-size:24px; margin-bottom:10px; }
+.personne-selector { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+.personne-selector select { flex:1; padding:8px; border-radius:8px; border:none; background:rgba(255,255,255,.2); color:#fff; font-size:16px; }
+.personne-selector select option { background:#007AFF; color:#fff; }
 .collection-selector { display:flex; gap:10px; align-items:center; }
 .collection-selector select { flex:1; padding:8px; border-radius:8px; border:none; background:rgba(255,255,255,.2); color:#fff; font-size:16px; }
 .collection-selector select option { background:#007AFF; color:#fff; }
@@ -27,14 +30,22 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .search-bar { padding:15px 20px; background:#fff; border-bottom:1px solid #e5e5ea; }
 .search-bar input { width:100%; padding:10px 15px; border:1px solid #e5e5ea; border-radius:10px; font-size:16px; }
 .content { padding:20px; }
-.serie-group { margin-bottom:30px; }
-.serie-header { display:flex; align-items:center; gap:10px; margin-bottom:15px; padding:10px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.1); }
-.serie-header h2 { flex:1; font-size:18px; color:#007AFF; }
-.serie-count { padding:4px 12px; background:#f5f5f7; border-radius:12px; font-size:14px; color:#8e8e93; }
-.bd-item { background:#fff; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.1); cursor:pointer; }
-.bd-item:active { transform:scale(.98); }
-.bd-item h3 { font-size:16px; margin-bottom:5px; }
-.bd-item p { font-size:14px; color:#8e8e93; }
+.collection-group { margin-bottom:30px; }
+.collection-header { display:flex; align-items:center; gap:10px; margin-bottom:15px; padding:10px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+.collection-header h2 { flex:1; font-size:18px; color:#007AFF; }
+.collection-count { padding:4px 12px; background:#f5f5f7; border-radius:12px; font-size:14px; color:#8e8e93; }
+.item-card { background:#fff; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.1); cursor:pointer; display:flex; gap:15px; align-items:flex-start; }
+.item-card:active { transform:scale(.98); }
+.item-photo { width:80px; height:100px; object-fit:cover; border-radius:8px; background:#f5f5f7; }
+.item-photo-placeholder { width:80px; height:100px; background:#f5f5f7; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:32px; color:#c7c7cc; }
+.item-info { flex:1; }
+.item-info h3 { font-size:16px; margin-bottom:5px; }
+.item-info p { font-size:14px; color:#8e8e93; margin:2px 0; }
+.type-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; color:#fff; margin-bottom:5px; }
+.type-badge.bd { background:#007AFF; }
+.type-badge.santon { background:#34c759; }
+.type-badge.vehicule { background:#ff9500; }
+.type-badge.lego { background:#af52de; }
 .fab { position:fixed; bottom:30px; right:30px; width:60px; height:60px; background:#007AFF; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,122,255,.4); cursor:pointer; font-size:32px; color:#fff; border:none; z-index:99; }
 .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:20px; overflow-y:auto; }
 .modal.active { display:flex; }
@@ -44,7 +55,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .close-btn { background:none; border:none; font-size:28px; cursor:pointer; color:#8e8e93; }
 .form-group { margin-bottom:15px; }
 .form-group label { display:block; margin-bottom:5px; font-weight:500; font-size:14px; color:#8e8e93; }
-.form-group input, .form-group select { width:100%; padding:10px; border:1px solid #e5e5ea; border-radius:8px; font-size:16px; background:#fff; color:#1c1c1e; }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:10px; border:1px solid #e5e5ea; border-radius:8px; font-size:16px; background:#fff; color:#1c1c1e; }
 .btn { width:100%; padding:12px; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; margin-top:10px; }
 .btn-primary { background:#007AFF; color:#fff; }
 .btn-secondary { background:#f5f5f7; color:#1c1c1e; }
@@ -65,7 +76,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .detail-info { background:#fff; padding:20px; border-radius:10px; margin-bottom:15px; }
 .detail-row { display:flex; padding:10px 0; border-bottom:1px solid #f5f5f7; align-items:center; }
 .detail-row:last-child { border-bottom:none; }
-.detail-label { flex:0 0 100px; color:#8e8e93; font-size:14px; }
+.detail-label { flex:0 0 140px; color:#8e8e93; font-size:14px; }
 .detail-value { flex:1; font-weight:500; }
 .detail-value select { width:100%; padding:8px; border-radius:8px; border:1px solid #e5e5ea; font-size:15px; background:#fff; color:#1c1c1e; }
 .search-results { margin-top:15px; max-height:300px; overflow-y:auto; }
@@ -91,16 +102,14 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .sync-indicator.syncing { background:#ffcc00; animation:pulse 1s infinite; }
 .sync-indicator.error { background:#ff3b30; }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
-.banner { background:#fff3cd; color:#856404; padding:12px 20px; text-align:center; border-bottom:1px solid #ffeaa7; font-size:14px; }
-.banner button { background:#007AFF; color:#fff; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; margin-left:10px; font-size:13px; }
 </style>
 </head>
 <body>
 <!-- Écran de connexion -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-box">
-    <h2>📚 Catalogue BD</h2>
-    <p id="authSubtitle">Connectez-vous pour accéder à votre collection</p>
+    <h2>📦 Ma Collection</h2>
+    <p id="authSubtitle">Connectez-vous pour accéder à vos collections</p>
     <div class="auth-error" id="authError"></div>
     <div class="form-group"><label>Email</label><input type="email" id="authEmail" placeholder="vous@exemple.com" autocomplete="email"></div>
     <div class="form-group"><label>Mot de passe</label><input type="password" id="authPassword" placeholder="Minimum 6 caractères" autocomplete="current-password"></div>
@@ -109,40 +118,44 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
   </div>
 </div>
 
-<!-- Bannière de migration -->
-<div class="banner" id="migrationBanner" style="display:none;">
-  📦 Des BD locales ont été détectées.
-  <button onclick="migrateLocalData()">📥 Importer dans le cloud</button>
-  <button onclick="dismissMigration()" style="background:#8e8e93;">Ignorer</button>
-</div>
-
 <div class="header">
-  <h1>📚 Catalogue BD <span class="sync-indicator" id="syncIndicator" title="Synchronisé"></span></h1>
+  <h1>📦 Ma Collection <span class="sync-indicator" id="syncIndicator" title="Synchronisé"></span></h1>
+  <div class="personne-selector">
+    <select id="personneSelect" onchange="changePersonne()"><option value="">Sélectionner une personne</option></select>
+    <button class="btn-manage" onclick="openManagePersonnes()">👤</button>
+  </div>
   <div class="collection-selector">
     <select id="collectionSelect" onchange="changeCollection()"><option value="">Toutes les collections</option></select>
-    <button class="btn-manage" onclick="openManageCollections()">Gérer</button>
+    <button class="btn-manage" onclick="openManageCollections()">📁</button>
   </div>
   <div class="user-info"><span id="userEmail"></span><button onclick="logout()">Déconnexion</button></div>
 </div>
 
-<div class="search-bar"><input type="text" id="searchInput" placeholder="Rechercher une BD..." oninput="filterBD()"></div>
+<div class="search-bar"><input type="text" id="searchInput" placeholder="Rechercher..." oninput="filterItems()"></div>
 <div class="content" id="content"></div>
-<button class="fab" onclick="openAddBD()">+</button>
+<button class="fab" onclick="openAddItem()">+</button>
 
 <!-- Modal d'ajout/modification -->
-<div class="modal" id="addBDModal">
+<div class="modal" id="addItemModal">
   <div class="modal-content">
     <div class="modal-header">
-      <h2 id="modalTitle">Ajouter une BD</h2>
-      <button class="close-btn" onclick="closeModal('addBDModal')">&times;</button>
+      <h2 id="modalTitle">Ajouter un item</h2>
+      <button class="close-btn" onclick="closeModal('addItemModal')">&times;</button>
     </div>
 
-    <button class="btn btn-secondary" onclick="openScanner()">📷 Scanner / Saisir un ISBN</button>
-    <button class="btn btn-secondary" onclick="openTitleSearch()">🔍 Rechercher par titre</button>
+    <div class="form-group">
+      <label>Collection</label>
+      <select id="itemCollectionSelect" onchange="updateFormForType()"></select>
+    </div>
 
+    <!-- Boutons d'action pour BD -->
+    <div id="bdActionButtons" style="display:none;">
+      <button class="btn btn-secondary" onclick="openScanner()">📷 Scanner / Saisir un ISBN</button>
+      <button class="btn btn-secondary" onclick="openTitleSearch()">🔍 Rechercher par titre</button>
+    </div>
+
+    <!-- Zone de scan ISBN pour BD -->
     <div id="scannerSection" style="display:none; margin-top:15px;">
-
-      <!-- ZONE 1 : scan -->
       <div class="scan-zone">
         <h3>📷 Zone 1 : Scanner</h3>
         <button class="btn btn-primary" id="btnScan" onclick="startLiveScanner()">Scanner le code-barres (caméra)</button>
@@ -152,7 +165,6 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
         <img id="capturePreview" style="display:none; max-width:100%; max-height:220px; object-fit:contain; border-radius:10px; margin-top:12px; border:1px solid #e5e5ea;">
       </div>
 
-      <!-- ZONE 2 : saisie ISBN (clavier ou douchette USB/Bluetooth) -->
       <div class="scan-zone">
         <h3>⌨️ Zone 2 : Saisir l'ISBN</h3>
         <div style="display:flex; gap:8px;">
@@ -166,26 +178,24 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
       <div id="scanStatus" style="margin-top:10px;"></div>
     </div>
 
+    <!-- Zone recherche par titre -->
     <div id="titleSearchSection" style="display:none; margin-top:15px;">
       <div class="form-group"><label>Titre à rechercher</label><input type="text" id="titleSearchInput" placeholder="Ex: Astérix"></div>
       <button class="btn btn-primary" onclick="searchByTitle()">Rechercher</button>
       <div id="titleSearchResults" class="search-results"></div>
     </div>
 
-    <div class="form-group" style="margin-top:20px;"><label>Collection</label><select id="bdCollectionSelect"></select></div>
-    <div class="form-group"><label>Série</label><input type="text" id="bdSerie" placeholder="Ex: Astérix"></div>
-    <div class="form-group"><label>Nom de la BD</label><input type="text" id="bdNom" placeholder="Ex: Le bouclier arverne"></div>
-    <div class="form-group"><label>Éditeur</label><input type="text" id="bdEdition" placeholder="Ex: Dargaud"></div>
-    <div class="form-group"><label>Numéro de tome</label><input type="text" id="bdNumero" placeholder="Ex: 2"></div>
-    <div class="form-group"><label>Année</label><input type="text" id="bdAnnee" placeholder="Ex: 1983"></div>
+    <!-- Formulaire dynamique -->
+    <div id="dynamicForm" style="margin-top:20px;"></div>
+
     <div class="form-group">
-      <label>Couverture personnalisée</label>
-      <input type="file" id="bdImage" accept="image/*" capture="environment" onchange="previewImage(event)">
+      <label>Photo</label>
+      <input type="file" id="itemPhoto" accept="image/*" capture="environment" onchange="previewImage(event)">
       <img id="imagePreview" class="image-preview" style="display:none;">
     </div>
 
-    <button class="btn btn-primary" onclick="saveBD()">Enregistrer</button>
-    <button class="btn btn-secondary" onclick="closeModal('addBDModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="saveItem()">Enregistrer</button>
+    <button class="btn btn-secondary" onclick="closeModal('addItemModal')">Annuler</button>
   </div>
 </div>
 
@@ -197,13 +207,37 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
   </div>
 </div>
 
+<!-- Modal gestion personnes -->
+<div class="modal" id="managePersonnesModal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>Gérer les personnes</h2><button class="close-btn" onclick="closeModal('managePersonnesModal')">&times;</button></div>
+    <div class="form-group"><label>Nouvelle personne</label><input type="text" id="newPersonneName" placeholder="Nom de la personne"></div>
+    <button class="btn btn-primary" onclick="addPersonne()">Ajouter</button>
+    <div style="margin-top:20px;"><h3 style="margin-bottom:10px;">Personnes existantes</h3><div id="personnesList"></div></div>
+  </div>
+</div>
+
 <!-- Modal gestion collections -->
 <div class="modal" id="manageCollectionsModal">
   <div class="modal-content">
-    <div class="modal-header"><h2>Gérer les collections</h2><button class="close-btn" onclick="closeModal('manageCollectionsModal')">&times;</button></div>
-    <div class="form-group"><label>Nouvelle collection</label><input type="text" id="newCollectionName" placeholder="Nom de la collection"></div>
-    <button class="btn btn-primary" onclick="addCollection()">Ajouter</button>
-    <div style="margin-top:20px;"><h3 style="margin-bottom:10px;">Collections existantes</h3><div id="collectionsList"></div></div>
+    <div class="modal-header">
+      <h2>Ajouter une collection</h2>
+      <button class="close-btn" onclick="closeModal('manageCollectionsModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Type de collection</label>
+      <select id="newCollectionType">
+        <option value="bd">📚 BD</option>
+        <option value="santon">🎭 Santons</option>
+        <option value="vehicule">🚗 Véhicules</option>
+        <option value="lego">🧱 Lego</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="addCollection()">Créer la collection</button>
+    <div style="margin-top:20px;">
+      <h3 style="margin-bottom:10px;">Mes collections</h3>
+      <div id="collectionsList"></div>
+    </div>
   </div>
 </div>
 
@@ -219,15 +253,17 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // État global
 let currentUser = null;
+let personnes = [];
 let collections = [];
-let bdList = [];
-let currentBDId = null;
+let items = [];
+let currentItemId = null;
+let pendingPhotoFile = null;
+let authMode = 'login';
+let realtimeChannel = null;
 let scanner = null;
 let handling = false;
 let lastCaptureObjectUrl = null;
-let pendingCoverFile = null;
-let authMode = 'login';
-let realtimeChannel = null;
+let currentCollectionType = null;
 
 // ==========================================
 // AUTHENTIFICATION
@@ -237,7 +273,7 @@ function toggleAuthMode() {
     document.getElementById('authSubmit').textContent = authMode === 'login' ? 'Se connecter' : 'Créer mon compte';
     document.getElementById('authToggleText').textContent = authMode === 'login' ? 'Pas encore de compte ?' : 'Déjà un compte ?';
     document.getElementById('authToggleLink').textContent = authMode === 'login' ? 'Créer un compte' : 'Se connecter';
-    document.getElementById('authSubtitle').textContent = authMode === 'login' ? 'Connectez-vous pour accéder à votre collection' : 'Créez un compte pour commencer';
+    document.getElementById('authSubtitle').textContent = authMode === 'login' ? 'Connectez-vous pour accéder à vos collections' : 'Créez un compte pour commencer';
     document.getElementById('authError').style.display = 'none';
 }
 
@@ -282,11 +318,17 @@ async function onLoginSuccess() {
     try {
         document.getElementById('authScreen').style.display = 'none';
         document.getElementById('userEmail').textContent = currentUser.email;
+        
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Session non établie');
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         await loadAllData();
         subscribeToChanges();
-        checkForLocalData();
-        renderBD();
+        renderItems();
     } catch (err) {
+        console.error('Erreur de chargement:', err);
         document.getElementById('authScreen').style.display = 'flex';
         const errorEl = document.getElementById('authError');
         errorEl.textContent = 'Connecté mais erreur de chargement : ' + err.message;
@@ -308,10 +350,17 @@ async function checkSession() {
 async function loadAllData() {
     setSyncStatus(true);
     try {
-        await Promise.all([loadCollections(), loadBDs()]);
+        await Promise.all([loadPersonnes(), loadCollections(), loadItems()]);
+        updatePersonneSelector();
         updateCollectionSelector();
-        renderBD();
+        renderItems();
     } finally { setSyncStatus(false); }
+}
+
+async function loadPersonnes() {
+    const { data, error } = await sb.from('personnes').select('*').order('nom');
+    if (error) throw error;
+    personnes = data || [];
 }
 
 async function loadCollections() {
@@ -320,17 +369,18 @@ async function loadCollections() {
     collections = data || [];
 }
 
-async function loadBDs() {
-    const { data, error } = await sb.from('bd').select('*').order('serie').order('numero');
+async function loadItems() {
+    const { data, error } = await sb.from('items').select('*').order('nom');
     if (error) throw error;
-    bdList = data || [];
+    items = data || [];
 }
 
 function subscribeToChanges() {
     if (realtimeChannel) sb.removeChannel(realtimeChannel);
-    realtimeChannel = sb.channel('catalogue-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, () => loadCollections().then(updateCollectionSelector).then(renderBD))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bd' }, () => loadBDs().then(renderBD))
+    realtimeChannel = sb.channel('collection-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'personnes' }, () => loadPersonnes().then(updatePersonneSelector).then(renderItems))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'collections' }, () => loadCollections().then(updateCollectionSelector).then(renderItems))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => loadItems().then(renderItems))
         .subscribe();
 }
 
@@ -341,143 +391,284 @@ function setSyncStatus(syncing) {
 }
 
 // ==========================================
-// COLLECTIONS CRUD
+// PERSONNES CRUD
 // ==========================================
-async function addCollection() {
-    const name = document.getElementById('newCollectionName').value.trim();
+async function addPersonne() {
+    const name = document.getElementById('newPersonneName').value.trim();
     if (!name) return;
     setSyncStatus(true);
     try {
-        const { error } = await sb.from('collections').insert({ user_id: currentUser.id, nom: name });
+        const { error } = await sb.from('personnes').insert({ user_id: currentUser.id, nom: name });
         if (error) throw error;
-        document.getElementById('newCollectionName').value = '';
-        await loadCollections(); updateCollectionSelector(); renderCollectionsList();
+        document.getElementById('newPersonneName').value = '';
+        await loadPersonnes(); updatePersonneSelector(); renderPersonnesList();
     } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
 }
 
-async function renameCollection(id) {
+async function renamePersonne(id) {
     const newName = prompt("Nouveau nom :");
     if (!newName || !newName.trim()) return;
     setSyncStatus(true);
     try {
-        const { error } = await sb.from('collections').update({ nom: newName.trim() }).eq('id', id);
+        const { error } = await sb.from('personnes').update({ nom: newName.trim() }).eq('id', id);
         if (error) throw error;
-        await loadCollections(); updateCollectionSelector(); renderCollectionsList(); renderBD();
+        await loadPersonnes(); updatePersonneSelector(); renderPersonnesList(); renderItems();
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+async function deletePersonne(id) {
+    if (!confirm('Supprimer cette personne et toutes ses collections ?')) return;
+    setSyncStatus(true);
+    try {
+        const cols = await sb.from('collections').select('id').eq('personne_id', id);
+        if (cols.data && cols.data.length) {
+            const colIds = cols.data.map(c => c.id);
+            await sb.from('items').delete().in('collection_id', colIds);
+        }
+        await sb.from('collections').delete().eq('personne_id', id);
+        const { error } = await sb.from('personnes').delete().eq('id', id);
+        if (error) throw error;
+        await loadPersonnes(); await loadCollections(); await loadItems();
+        updatePersonneSelector(); updateCollectionSelector(); renderPersonnesList(); renderItems();
+    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
+}
+
+// ==========================================
+// COLLECTIONS CRUD
+// ==========================================
+async function addCollection() {
+    const type = document.getElementById('newCollectionType').value;
+    const personneId = document.getElementById('personneSelect').value || null;
+    
+    const typeNames = {
+        'bd': 'BD',
+        'santon': 'Santons',
+        'vehicule': 'Véhicules',
+        'lego': 'Lego'
+    };
+    const name = typeNames[type];
+    
+    setSyncStatus(true);
+    try {
+        const { error } = await sb.from('collections').insert({ 
+            user_id: currentUser.id, 
+            personne_id: personneId, 
+            nom: name, 
+            type: type 
+        });
+        if (error) throw error;
+        await loadCollections(); 
+        updateCollectionSelector(); 
+        renderCollectionsList();
+        closeModal('manageCollectionsModal');
     } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
 }
 
 async function deleteCollection(id) {
-    if (!confirm('Supprimer cette collection et ses BD ?')) return;
+    if (!confirm('Supprimer cette collection et tous ses items ?')) return;
     setSyncStatus(true);
     try {
-        await sb.from('bd').delete().eq('collection_id', id);
+        await sb.from('items').delete().eq('collection_id', id);
         const { error } = await sb.from('collections').delete().eq('id', id);
         if (error) throw error;
-        await loadCollections(); await loadBDs(); updateCollectionSelector(); renderCollectionsList(); renderBD();
+        await loadCollections(); await loadItems(); updateCollectionSelector(); renderCollectionsList(); renderItems();
     } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
 }
 
 // ==========================================
-// BD CRUD
+// ITEMS CRUD
 // ==========================================
-function openAddBD(bdId = null) {
+function openAddItem(itemId = null) {
     stopScanner();
-    currentBDId = bdId; pendingCoverFile = null;
-    document.getElementById('modalTitle').textContent = bdId ? 'Modifier la BD' : 'Ajouter une BD';
-    ['bdSerie','bdNom','bdEdition','bdNumero','bdAnnee','isbnInput'].forEach(id => document.getElementById(id).value = '');
+    currentItemId = itemId; 
+    pendingPhotoFile = null;
+    document.getElementById('modalTitle').textContent = itemId ? 'Modifier l\'item' : 'Ajouter un item';
     document.getElementById('imagePreview').style.display = 'none';
     document.getElementById('scannerSection').style.display = 'none';
     document.getElementById('titleSearchSection').style.display = 'none';
+    document.getElementById('bdActionButtons').style.display = 'none';
     document.getElementById('reader').style.display = 'none';
-    document.getElementById('scanStatus').innerHTML = '';
     document.getElementById('capturePreview').style.display = 'none';
+    const scanStatus = document.getElementById('scanStatus');
+    if (scanStatus) scanStatus.innerHTML = '';
 
     let selectedCollectionId = document.getElementById('collectionSelect').value || '';
-    if (bdId) {
-        const bd = bdList.find(b => b.id === bdId);
-        if (bd) {
-            document.getElementById('bdSerie').value = bd.serie || '';
-            document.getElementById('bdNom').value = bd.nom;
-            document.getElementById('bdEdition').value = bd.edition || '';
-            document.getElementById('bdNumero').value = bd.numero || '';
-            document.getElementById('bdAnnee').value = bd.annee || '';
-            selectedCollectionId = bd.collection_id ? String(bd.collection_id) : '';
-            if (bd.image_url) {
-                document.getElementById('imagePreview').src = bd.image_url;
+    if (itemId) {
+        const item = items.find(i => i.id === itemId);
+        if (item) {
+            selectedCollectionId = String(item.collection_id);
+            if (item.photo_url) {
+                document.getElementById('imagePreview').src = item.photo_url;
                 document.getElementById('imagePreview').style.display = 'block';
             }
         }
     }
-    document.getElementById('bdCollectionSelect').innerHTML = collectionOptionsHTML(selectedCollectionId);
-    document.getElementById('addBDModal').classList.add('active');
+    document.getElementById('itemCollectionSelect').innerHTML = collectionOptionsHTML(selectedCollectionId);
+    updateFormForType();
+    document.getElementById('addItemModal').classList.add('active');
 }
 
-async function saveBD() {
-    const serie = document.getElementById('bdSerie').value.trim();
-    const nom = document.getElementById('bdNom').value.trim();
-    const edition = document.getElementById('bdEdition').value.trim();
-    const numero = document.getElementById('bdNumero').value.trim();
-    const annee = document.getElementById('bdAnnee').value.trim();
-    const imagePreview = document.getElementById('imagePreview');
-    const collectionId = document.getElementById('bdCollectionSelect').value || null;
+function updateFormForType() {
+    const collectionId = document.getElementById('itemCollectionSelect').value;
+    const collection = collections.find(c => String(c.id) === String(collectionId));
+    const type = collection ? collection.type : null;
+    currentCollectionType = type;
+    const form = document.getElementById('dynamicForm');
+    
+    const item = currentItemId ? items.find(i => i.id === currentItemId) : null;
+    
+    // Afficher/cacher les boutons BD
+    const bdButtons = document.getElementById('bdActionButtons');
+    if (type === 'bd') {
+        bdButtons.style.display = 'block';
+    } else {
+        bdButtons.style.display = 'none';
+        document.getElementById('scannerSection').style.display = 'none';
+        document.getElementById('titleSearchSection').style.display = 'none';
+    }
+    
+    if (!type) {
+        form.innerHTML = '<p style="color:#8e8e93;text-align:center;padding:20px;">Sélectionnez une collection pour commencer</p>';
+        return;
+    }
 
-    if (!nom || !edition) { alert('Le nom et l\'éditeur sont obligatoires'); return; }
+    let html = '';
+    
+    if (type === 'bd') {
+        html = `
+            <div class="form-group"><label>Nom de la BD</label><input type="text" id="itemNom" value="${escapeHtml(item?.nom || '')}"></div>
+            <div class="form-group"><label>Titre</label><input type="text" id="itemTitre" value="${escapeHtml(item?.titre || '')}"></div>
+            <div class="form-group"><label>Numéro d'album</label><input type="text" id="itemNumero" value="${escapeHtml(item?.numero_album || '')}"></div>
+            <div class="form-group"><label>Éditeur</label><input type="text" id="itemEditeur" value="${escapeHtml(item?.editeur || '')}"></div>
+            <div class="form-group"><label>Année</label><input type="text" id="itemAnnee" value="${escapeHtml(item?.annee_bd || '')}"></div>
+            <div class="form-group"><label>ISBN</label><input type="text" id="itemISBN" value="${escapeHtml(item?.isbn || '')}"></div>
+        `;
+    } else if (type === 'santon') {
+        html = `
+            <div class="form-group"><label>Référence</label><input type="text" id="itemReference" value="${escapeHtml(item?.reference_santon || '')}"></div>
+            <div class="form-group"><label>Nom</label><input type="text" id="itemNom" value="${escapeHtml(item?.nom || '')}"></div>
+        `;
+    } else if (type === 'vehicule') {
+        html = `
+            <div class="form-group"><label>Type</label>
+                <select id="itemTypeVehicule">
+                    <option value="">Sélectionner</option>
+                    <option value="voiture" ${item?.type_vehicule === 'voiture' ? 'selected' : ''}>Voiture</option>
+                    <option value="camion" ${item?.type_vehicule === 'camion' ? 'selected' : ''}>Camion</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Marque</label><input type="text" id="itemMarque" value="${escapeHtml(item?.marque || '')}"></div>
+            <div class="form-group"><label>Modèle</label><input type="text" id="itemModele" value="${escapeHtml(item?.modele || '')}"></div>
+            <div class="form-group"><label>Numéro</label><input type="text" id="itemNumero" value="${escapeHtml(item?.numero_vehicule || '')}"></div>
+            <div class="form-group"><label>Années de participation</label><input type="text" id="itemAnnees" placeholder="Ex: 2020, 2021, 2022" value="${escapeHtml(item?.annees_participation || '')}"></div>
+        `;
+    } else if (type === 'lego') {
+        html = `
+            <div class="form-group"><label>Gamme</label><input type="text" id="itemGamme" placeholder="Ex: Star Wars, Speed Champions" value="${escapeHtml(item?.gamme || '')}"></div>
+            <div class="form-group"><label>Nom</label><input type="text" id="itemNom" value="${escapeHtml(item?.nom || '')}"></div>
+            <div class="form-group"><label>Référence</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="itemReference" value="${escapeHtml(item?.reference_lego || '')}" style="flex:1;">
+                    <button class="btn btn-secondary" style="width:auto;margin-top:0;padding:10px 16px;" onclick="scanLegoCode()">📷</button>
+                </div>
+            </div>
+            <div class="form-group"><label>Année</label><input type="text" id="itemAnnee" value="${escapeHtml(item?.annee_lego || '')}"></div>
+            <div class="form-group"><label>Nombre de pièces</label><input type="number" id="itemPieces" value="${escapeHtml(item?.nombre_pieces || '')}"></div>
+        `;
+    }
+    
+    form.innerHTML = html;
+}
 
+async function saveItem() {
+    const collectionId = document.getElementById('itemCollectionSelect').value;
+    if (!collectionId) { alert('Sélectionnez une collection'); return; }
+    
+    const collection = collections.find(c => String(c.id) === String(collectionId));
+    if (!collection) { alert('Collection introuvable'); return; }
+    
+    const type = collection.type;
+    const record = { 
+        user_id: currentUser.id, 
+        collection_id: collectionId, 
+        type: type,
+        photo_path: null,
+        photo_url: null
+    };
+    
+    if (type === 'bd') {
+        record.nom = document.getElementById('itemNom').value.trim() || null;
+        record.titre = document.getElementById('itemTitre').value.trim() || null;
+        record.numero_album = document.getElementById('itemNumero').value.trim() || null;
+        record.editeur = document.getElementById('itemEditeur').value.trim() || null;
+        record.annee_bd = document.getElementById('itemAnnee').value.trim() || null;
+        record.isbn = document.getElementById('itemISBN').value.trim() || null;
+    } else if (type === 'santon') {
+        record.reference_santon = document.getElementById('itemReference').value.trim() || null;
+        record.nom = document.getElementById('itemNom').value.trim() || null;
+    } else if (type === 'vehicule') {
+        record.type_vehicule = document.getElementById('itemTypeVehicule').value || null;
+        record.marque = document.getElementById('itemMarque').value.trim() || null;
+        record.modele = document.getElementById('itemModele').value.trim() || null;
+        record.numero_vehicule = document.getElementById('itemNumero').value.trim() || null;
+        record.annees_participation = document.getElementById('itemAnnees').value.trim() || null;
+        record.nom = record.marque && record.modele ? `${record.marque} ${record.modele}` : record.marque || record.modele || 'Véhicule';
+    } else if (type === 'lego') {
+        record.gamme = document.getElementById('itemGamme').value.trim() || null;
+        record.nom = document.getElementById('itemNom').value.trim() || null;
+        record.reference_lego = document.getElementById('itemReference').value.trim() || null;
+        record.annee_lego = document.getElementById('itemAnnee').value.trim() || null;
+        record.nombre_pieces = parseInt(document.getElementById('itemPieces').value) || null;
+    }
+    
+    if (!record.nom && type !== 'vehicule') { alert('Le nom est obligatoire'); return; }
+    
     setSyncStatus(true);
     try {
-        let imagePath = null, imageUrl = null;
-        if (pendingCoverFile) {
-            setScanStatus('<span class="loader"></span> Envoi de la couverture...', 'searching');
-            const upload = await uploadCover(pendingCoverFile, currentBDId);
-            imagePath = upload.path; imageUrl = upload.url;
-            pendingCoverFile = null;
-        } else if (currentBDId && imagePreview.style.display !== 'none') {
-            const existing = bdList.find(b => b.id === currentBDId);
-            if (existing) { imagePath = existing.image_path; imageUrl = existing.image_url; }
+        if (pendingPhotoFile) {
+            const upload = await uploadPhoto(pendingPhotoFile, currentItemId);
+            record.photo_path = upload.path;
+            record.photo_url = upload.url;
+            pendingPhotoFile = null;
+        } else if (currentItemId) {
+            const existing = items.find(i => i.id === currentItemId);
+            if (existing) {
+                record.photo_path = existing.photo_path;
+                record.photo_url = existing.photo_url;
+            }
         }
 
-        const record = { user_id: currentUser.id, serie: serie || null, nom, edition, numero: numero || null, annee: annee || null, image_path: imagePath, image_url: imageUrl, collection_id: collectionId };
-
-        if (currentBDId) {
-            const { error } = await sb.from('bd').update(record).eq('id', currentBDId);
+        if (currentItemId) {
+            const { error } = await sb.from('items').update(record).eq('id', currentItemId);
             if (error) throw error;
         } else {
             record.date_ajout = new Date().toISOString();
-            const { error } = await sb.from('bd').insert(record);
+            const { error } = await sb.from('items').insert(record);
             if (error) throw error;
         }
-        await loadBDs(); closeModal('addBDModal'); renderBD();
+        await loadItems(); closeModal('addItemModal'); renderItems();
     } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
 }
 
-async function deleteBD(id) {
-    if (!confirm('Supprimer cette BD ?')) return;
+async function deleteItem(id) {
+    if (!confirm('Supprimer cet item ?')) return;
     setSyncStatus(true);
     try {
-        const bd = bdList.find(b => b.id === id);
-        if (bd && bd.image_path) await sb.storage.from('covers').remove([bd.image_path]);
-        const { error } = await sb.from('bd').delete().eq('id', id);
+        const item = items.find(i => i.id === id);
+        if (item && item.photo_path) await sb.storage.from('covers').remove([item.photo_path]);
+        const { error } = await sb.from('items').delete().eq('id', id);
         if (error) throw error;
-        await loadBDs(); closeModal('detailModal'); renderBD();
-    } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
-}
-
-async function changeDetailCollection(bdId, collectionValue) {
-    setSyncStatus(true);
-    try {
-        const { error } = await sb.from('bd').update({ collection_id: collectionValue || null }).eq('id', bdId);
-        if (error) throw error;
-        await loadBDs(); renderBD(); showDetail(bdId);
+        await loadItems(); closeModal('detailModal'); renderItems();
     } catch (err) { alert('Erreur: ' + err.message); } finally { setSyncStatus(false); }
 }
 
 // ==========================================
-// UPLOAD IMAGE COMPRESSÉE
+// UPLOAD IMAGE
 // ==========================================
-async function uploadCover(file, existingBdId = null) {
+async function uploadPhoto(file, existingItemId = null) {
     const compressedBlob = await compressImageFile(file, 1200, 0.75);
-    const bdId = existingBdId || 'new-' + Date.now();
-    const path = `${currentUser.id}/${bdId}-${Date.now()}.jpg`;
+    const itemId = existingItemId || 'new-' + Date.now();
+    const path = `${currentUser.id}/${itemId}-${Date.now()}.jpg`;
     const { error } = await sb.storage.from('covers').upload(path, compressedBlob, { contentType: 'image/jpeg', upsert: true });
     if (error) throw error;
     const { data } = sb.storage.from('covers').getPublicUrl(path);
@@ -508,7 +699,7 @@ function compressImageFile(file, maxDimension = 1200, quality = 0.75) {
 function previewImage(event) {
     const file = event.target.files[0];
     if (file) {
-        pendingCoverFile = file;
+        pendingPhotoFile = file;
         const reader = new FileReader();
         reader.onload = (e) => { document.getElementById('imagePreview').src = e.target.result; document.getElementById('imagePreview').style.display = 'block'; };
         reader.readAsDataURL(file);
@@ -516,118 +707,7 @@ function previewImage(event) {
 }
 
 // ==========================================
-// AFFICHAGE
-// ==========================================
-function collectionOptionsHTML(selectedId) {
-    return '<option value="">Aucune collection</option>' + collections.map(c => {
-        const sel = String(selectedId || '') === String(c.id) ? ' selected' : '';
-        return `<option value="${c.id}"${sel}>${escapeHtml(c.nom)}</option>`;
-    }).join('');
-}
-
-function updateCollectionSelector() {
-    const select = document.getElementById('collectionSelect');
-    const current = select.value;
-    select.innerHTML = '<option value="">Toutes les collections</option>' + collections.map(c => `<option value="${c.id}">${escapeHtml(c.nom)}</option>`).join('');
-    select.value = current;
-}
-
-function changeCollection() { renderBD(); }
-
-function renderBD() {
-    const content = document.getElementById('content');
-    const collectionId = document.getElementById('collectionSelect').value;
-    const searchText = document.getElementById('searchInput').value.toLowerCase();
-    let filteredBD = collectionId ? bdList.filter(b => String(b.collection_id) === String(collectionId)) : bdList;
-    if (searchText) {
-        filteredBD = filteredBD.filter(b =>
-            (b.nom||'').toLowerCase().includes(searchText) || (b.serie&&b.serie.toLowerCase().includes(searchText)) ||
-            (b.edition||'').toLowerCase().includes(searchText) || (b.numero&&b.numero.toLowerCase().includes(searchText)) ||
-            (b.annee&&b.annee.toLowerCase().includes(searchText))
-        );
-    }
-    if (filteredBD.length === 0) {
-        content.innerHTML = `<div class="empty-state"><p>${searchText ? 'Aucune BD trouvée pour "'+escapeHtml(searchText)+'"' : 'Aucune BD. Appuyez sur + pour en ajouter.'}</p></div>`;
-        return;
-    }
-    const groups = {};
-    filteredBD.forEach(bd => { const key = bd.serie || 'Hors série'; if (!groups[key]) groups[key] = []; groups[key].push(bd); });
-    const sortedKeys = Object.keys(groups).sort((a,b) => a==='Hors série'?1:b==='Hors série'?-1:a.localeCompare(b,'fr'));
-    content.innerHTML = sortedKeys.map(key => {
-        const bds = groups[key].sort((a,b) => (a.numero?parseInt(a.numero):999)-(b.numero?parseInt(b.numero):999));
-        return `<div class="serie-group"><div class="serie-header"><h2>📚 ${escapeHtml(key)}</h2><span class="serie-count">${bds.length}</span></div>${bds.map(bd=>`<div class="bd-item" onclick="showDetail('${bd.id}')"><h3>${escapeHtml(bd.nom)}</h3>${bd.numero?`<p>Tome ${escapeHtml(bd.numero)}</p>`:''}</div>`).join('')}</div>`;
-    }).join('');
-}
-
-function filterBD() { renderBD(); }
-
-function showDetail(id) {
-    const bd = bdList.find(b => b.id === id); if (!bd) return;
-    document.getElementById('detailContent').innerHTML = `
-        ${bd.image_url ? `<img src="${bd.image_url}" class="detail-image" onerror="this.style.display='none'">` : ''}
-        <div class="detail-info">
-            ${bd.serie ? `<div class="detail-row"><span class="detail-label">Série</span><span class="detail-value" style="color:#007AFF">${escapeHtml(bd.serie)}</span></div>` : ''}
-            <div class="detail-row"><span class="detail-label">Nom</span><span class="detail-value">${escapeHtml(bd.nom)}</span></div>
-            <div class="detail-row"><span class="detail-label">Éditeur</span><span class="detail-value">${escapeHtml(bd.edition||'')}</span></div>
-            ${bd.numero ? `<div class="detail-row"><span class="detail-label">Tome</span><span class="detail-value">${escapeHtml(bd.numero)}</span></div>` : ''}
-            ${bd.annee ? `<div class="detail-row"><span class="detail-label">Année</span><span class="detail-value">${escapeHtml(bd.annee)}</span></div>` : ''}
-            <div class="detail-row"><span class="detail-label">Collection</span><span class="detail-value"><select onchange="changeDetailCollection('${bd.id}',this.value)">${collectionOptionsHTML(bd.collection_id)}</select></span></div>
-            <div class="detail-row"><span class="detail-label">Ajouté le</span><span class="detail-value">${new Date(bd.date_ajout).toLocaleDateString('fr-FR')}</span></div>
-        </div>
-        <button class="btn btn-primary" onclick="openAddBD('${bd.id}');closeModal('detailModal');">Modifier</button>
-        <button class="btn btn-danger" onclick="deleteBD('${bd.id}')">Supprimer</button>`;
-    document.getElementById('detailModal').classList.add('active');
-}
-
-function openManageCollections() { document.getElementById('manageCollectionsModal').classList.add('active'); renderCollectionsList(); }
-
-function renderCollectionsList() {
-    const list = document.getElementById('collectionsList');
-    if (!collections.length) { list.innerHTML = '<p style="color:#8e8e93">Aucune collection</p>'; return; }
-    list.innerHTML = collections.map(c => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#f5f5f7;border-radius:8px;margin-bottom:8px"><span>${escapeHtml(c.nom)}</span><div><button onclick="renameCollection('${c.id}')" style="background:#007AFF;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;margin-right:5px">✏️</button><button onclick="deleteCollection('${c.id}')" style="background:#ff3b30;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer">🗑️</button></div></div>`).join('');
-}
-
-// ==========================================
-// MIGRATION DONNÉES LOCALES
-// ==========================================
-function checkForLocalData() {
-    const localBD = JSON.parse(localStorage.getItem('bd')||'[]');
-    const localCol = JSON.parse(localStorage.getItem('collections')||'[]');
-    if (localBD.length || localCol.length) document.getElementById('migrationBanner').style.display = 'block';
-}
-
-function dismissMigration() {
-    if (confirm('Supprimer les données locales ?')) { localStorage.removeItem('bd'); localStorage.removeItem('collections'); document.getElementById('migrationBanner').style.display = 'none'; }
-}
-
-async function migrateLocalData() {
-    const localBD = JSON.parse(localStorage.getItem('bd')||'[]');
-    const localCol = JSON.parse(localStorage.getItem('collections')||'[]');
-    if (!localBD.length && !localCol.length) { alert('Aucune donnée locale.'); return; }
-    if (!confirm(`Importer ${localCol.length} collection(s) et ${localBD.length} BD ?`)) return;
-    setSyncStatus(true);
-    try {
-        const colMap = {};
-        for (const c of localCol) { const {data,error} = await sb.from('collections').insert({user_id:currentUser.id,nom:c.nom}).select().single(); if(error)throw error; colMap[c.id]=data.id; }
-        for (const bd of localBD) {
-            const rec = { user_id:currentUser.id, serie:bd.serie||null, nom:bd.nom, edition:bd.edition||'', numero:bd.numero||null, annee:bd.annee||null, image_path:null, image_url:null, collection_id:bd.collectionId?colMap[bd.collectionId]||null:null, date_ajout:bd.dateAjout||new Date().toISOString() };
-            if (bd.imageData && bd.imageData.startsWith('data:image')) {
-                try { const blob = await dataURLtoBlob(bd.imageData); const comp = await compressImageFile(blob,1200,0.75); const up = await uploadCover(comp); rec.image_path=up.path; rec.image_url=up.url; } catch(e) {}
-            }
-            const {error} = await sb.from('bd').insert(rec); if(error)throw error;
-        }
-        localStorage.removeItem('bd'); localStorage.removeItem('collections');
-        document.getElementById('migrationBanner').style.display = 'none';
-        await loadAllData(); alert('✅ Migration terminée !');
-    } catch(err) { alert('Erreur: '+err.message); } finally { setSyncStatus(false); }
-}
-
-function dataURLtoBlob(dataurl) {
-    return new Promise((resolve,reject) => { try { const arr=dataurl.split(','),mime=arr[0].match(/:(.*?);/)[1],bstr=atob(arr[1]),u8=new Uint8Array(bstr.length); let n=bstr.length; while(n--)u8[n]=bstr.charCodeAt(n); resolve(new Blob([u8],{type:mime})); } catch(e){reject(e);} });
-}
-
-// ==========================================
-// SCAN / ISBN : OUTILS COMMUNS
+// SCAN ISBN - FONCTIONS COMPLÈTES
 // ==========================================
 function openScanner() {
     document.getElementById('titleSearchSection').style.display = 'none';
@@ -658,7 +738,6 @@ function isbn10to13(s) {
     for (let i = 0; i < 12; i++) sum += +b[i] * (i % 2 ? 3 : 1);
     return b + ((10 - (sum % 10)) % 10);
 }
-// Renvoie un ISBN-13 valide, sinon null
 function normalizeIsbn(raw) {
     const c = normalizeBarcode(raw).toUpperCase();
     if (isValidIsbn13(c)) return c;
@@ -669,12 +748,9 @@ function normalizeIsbn(raw) {
 function handleIsbn(isbn) {
     setScanStatus('✅ ISBN détecté : ' + isbn, 'success');
     searchBookByISBN(isbn);
-    document.getElementById('bdSerie')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('itemNom')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// ==========================================
-// ZONE 2 : SAISIE MANUELLE / DOUCHETTE
-// ==========================================
 function submitManualIsbn() {
     const input = document.getElementById('isbnInput');
     const isbn = normalizeIsbn(input.value);
@@ -683,9 +759,6 @@ function submitManualIsbn() {
     handleIsbn(isbn);
 }
 
-// ==========================================
-// ZONE 1 : SCAN CAMÉRA (iOS, Android, Windows, macOS)
-// ==========================================
 async function stopScanner() {
     stopWebcamPhoto();
     const s = scanner; scanner = null;
@@ -697,14 +770,12 @@ async function stopScanner() {
     if (b2) b2.style.display = 'none';
 }
 
-// Firefox / Safari (pas de BarcodeDetector natif) : Quagga2 en direct, avec web workers.
-// Plus rapide que le décodeur JS de Html5Qrcode pour les codes-barres EAN-13.
 function startQuaggaScanner(readerEl) {
     return new Promise((resolve) => {
         const onDetected = async (res) => {
             if (handling) return;
             const isbn = normalizeIsbn(res?.codeResult?.code);
-            if (!isbn) return;                      // ignore tout ce qui n'est pas un ISBN valide
+            if (!isbn) return;
             handling = true;
             if (navigator.vibrate) navigator.vibrate(200);
             await stopScanner();
@@ -760,7 +831,7 @@ async function startLiveScanner() {
 
     const instance = new Html5Qrcode('reader', {
         formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A],
-        useBarCodeDetectorIfSupported: true,   // natif si dispo (Chrome/Edge), sinon décodeur JS (Safari/Firefox)
+        useBarCodeDetectorIfSupported: true,
         verbose: false
     });
     const config = { fps: 10, qrbox: (w) => ({ width: Math.floor(Math.min(w, 400) * 0.9), height: 140 }) };
@@ -768,7 +839,7 @@ async function startLiveScanner() {
     const onSuccess = async (text) => {
         if (handling) return;
         const isbn = normalizeIsbn(text);
-        if (!isbn) return;                      // ignore prix, add-ons, codes non-ISBN
+        if (!isbn) return;
         handling = true;
         if (navigator.vibrate) navigator.vibrate(200);
         await stopScanner();
@@ -781,7 +852,7 @@ async function startLiveScanner() {
             await instance.start({ facingMode: 'environment' }, config, onSuccess, () => {});
         } catch (e) {
             if (e?.name === 'NotAllowedError' || /permission/i.test(String(e))) throw e;
-            const cams = await Html5Qrcode.getCameras();     // PC sans caméra "arrière"
+            const cams = await Html5Qrcode.getCameras();
             if (!cams.length) throw new Error('Aucune caméra');
             await instance.start(cams[cams.length - 1].id, config, onSuccess, () => {});
         }
@@ -801,7 +872,7 @@ async function startLiveScanner() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopScanner(); });
 
 // ==========================================
-// ZONE 1 (bis) : PHOTO → CODE-BARRES + OCR
+// PHOTO SCAN (iOS, Android, Mac, Windows)
 // ==========================================
 function loadImage(src) { return new Promise((res,rej) => { const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=src; }); }
 
@@ -872,8 +943,6 @@ function extractISBN(text) {
     return null;
 }
 
-// Écran tactile (téléphone/tablette) = appareil photo natif via <input capture>
-// Ordinateur (Mac/Windows) = webcam via getUserMedia (l'attribut capture y est ignoré)
 function isTouchDevice(){ return window.matchMedia('(pointer: coarse)').matches; }
 
 async function analyzeImageFile(file) {
@@ -884,7 +953,6 @@ async function analyzeImageFile(file) {
     let decoded=null,method='';
     try{
         const img=await loadImage(lastCaptureObjectUrl);
-        // 1) Code-barres d'abord (rapide). 2) OCR seulement si rien trouvé (lent).
         try{const r=await detectBarcodeAllRotations(img);if(r){decoded=r.code;method=r.method;}}catch(e){}
         if(!decoded){
             setScanStatus('<span class="loader"></span> Code-barres non lu, lecture du texte (OCR)...','searching');
@@ -924,7 +992,7 @@ async function webcamPhoto() {
     } catch (e) {
         const denied = e?.name === 'NotAllowedError';
         setScanStatus(denied
-            ? '❌ Accès webcam refusé. Autorisez la caméra pour ce site (Safari/Chrome → Réglages du site, et Réglages Système → Confidentialité → Caméra).'
+            ? '❌ Accès webcam refusé. Autorisez la caméra pour ce site.'
             : '❌ Webcam introuvable. Choisissez une image dans vos fichiers.', 'error');
         if (!denied) pickPhotoFile();
         return;
@@ -956,6 +1024,52 @@ async function unifiedScan() {
 }
 
 // ==========================================
+// SCAN LEGO
+// ==========================================
+async function scanLegoCode() {
+    if (scanner) { await stopScanner(); return; }
+    
+    const readerEl = document.createElement('div');
+    readerEl.id = 'scanReader';
+    readerEl.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:10000;display:flex;align-items:center;justify-content:center;';
+    document.body.appendChild(readerEl);
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✖ Fermer';
+    closeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10001;background:#ff3b30;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:16px;cursor:pointer;';
+    closeBtn.onclick = stopScanner;
+    document.body.appendChild(closeBtn);
+    
+    try {
+        const instance = new Html5Qrcode('scanReader', {
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39
+            ],
+            useBarCodeDetectorIfSupported: true,
+            verbose: false
+        });
+        const config = { fps: 10, qrbox: 250 };
+        
+        await instance.start({ facingMode: 'environment' }, config, async (text) => {
+            if (handling) return;
+            handling = true;
+            if (navigator.vibrate) navigator.vibrate(200);
+            await stopScanner();
+            document.getElementById('itemReference').value = text.trim();
+            handling = false;
+        }, () => {});
+        scanner = instance;
+    } catch (err) {
+        alert('Erreur caméra: ' + err.message);
+        stopScanner();
+    }
+}
+
+// ==========================================
 // RECHERCHE ISBN / TITRE
 // ==========================================
 async function searchBookByISBN(isbn) {
@@ -972,21 +1086,21 @@ async function searchBookByISBN(isbn) {
 
 function fillFormFromGoogle(vi) {
     const{serie,nom}=extraireSerie(vi.title||'');
-    if(serie&&!document.getElementById('bdSerie').value)document.getElementById('bdSerie').value=serie;
-    if(!document.getElementById('bdNom').value)document.getElementById('bdNom').value=nom;
-    if(!document.getElementById('bdEdition').value&&vi.publisher)document.getElementById('bdEdition').value=vi.publisher;
-    if(vi.publishedDate&&!document.getElementById('bdAnnee').value)document.getElementById('bdAnnee').value=vi.publishedDate.substring(0,4);
-    if(!document.getElementById('bdNumero').value){const m=(vi.title||'').match(/(?:tome|t\.|vol|n°|#)\s*(\d+)/i);if(m)document.getElementById('bdNumero').value=m[1];}
+    if(serie&&!document.getElementById('itemTitre').value)document.getElementById('itemTitre').value=serie;
+    if(!document.getElementById('itemNom').value)document.getElementById('itemNom').value=nom;
+    if(!document.getElementById('itemEditeur').value&&vi.publisher)document.getElementById('itemEditeur').value=vi.publisher;
+    if(vi.publishedDate&&!document.getElementById('itemAnnee').value)document.getElementById('itemAnnee').value=vi.publishedDate.substring(0,4);
+    if(!document.getElementById('itemNumero').value){const m=(vi.title||'').match(/(?:tome|t\.|vol|n°|#)\s*(\d+)/i);if(m)document.getElementById('itemNumero').value=m[1];}
     if(vi.imageLinks){const url=(vi.imageLinks.large||vi.imageLinks.medium||vi.imageLinks.thumbnail||'').replace('http://','https://');if(url)downloadRemoteImageToCover(url);}
     else{const isbn13=vi.industryIdentifiers?.find(id=>id.type==='ISBN_13')?.identifier;if(isbn13){fetch(`https://openlibrary.org/isbn/${isbn13}.json`).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.covers&&d.covers.length)downloadRemoteImageToCover(`https://covers.openlibrary.org/b/id/${d.covers[0]}-L.jpg`);}).catch(()=>{});}}
 }
 
 function fillFormFromOpenLibrary(data) {
     const{serie,nom}=extraireSerie(data.title||'');
-    if(serie&&!document.getElementById('bdSerie').value)document.getElementById('bdSerie').value=serie;
-    if(!document.getElementById('bdNom').value)document.getElementById('bdNom').value=nom;
-    if(data.publishers&&data.publishers.length&&!document.getElementById('bdEdition').value){const p=data.publishers[0];document.getElementById('bdEdition').value=typeof p==='string'?p:(p.name||'');}
-    if(data.publish_date&&!document.getElementById('bdAnnee').value){const m=data.publish_date.match(/\d{4}/);if(m)document.getElementById('bdAnnee').value=m[0];}
+    if(serie&&!document.getElementById('itemTitre').value)document.getElementById('itemTitre').value=serie;
+    if(!document.getElementById('itemNom').value)document.getElementById('itemNom').value=nom;
+    if(data.publishers&&data.publishers.length&&!document.getElementById('itemEditeur').value){const p=data.publishers[0];document.getElementById('itemEditeur').value=typeof p==='string'?p:(p.name||'');}
+    if(data.publish_date&&!document.getElementById('itemAnnee').value){const m=data.publish_date.match(/\d{4}/);if(m)document.getElementById('itemAnnee').value=m[0];}
     if(data.covers&&data.covers.length&&document.getElementById('imagePreview').style.display==='none')downloadRemoteImageToCover(`https://covers.openlibrary.org/b/id/${data.covers[0]}-L.jpg`);
 }
 
@@ -995,10 +1109,10 @@ function fillFormFromBnF(xmlText) {
     const title=doc.getElementsByTagName('dc:title')[0]?.textContent,publisher=doc.getElementsByTagName('dc:publisher')[0]?.textContent,date=doc.getElementsByTagName('dc:date')[0]?.textContent;
     if(!title)return false;
     const{serie,nom}=extraireSerie(title);
-    if(serie&&!document.getElementById('bdSerie').value)document.getElementById('bdSerie').value=serie;
-    if(!document.getElementById('bdNom').value)document.getElementById('bdNom').value=nom;
-    if(publisher&&!document.getElementById('bdEdition').value)document.getElementById('bdEdition').value=publisher;
-    if(date&&!document.getElementById('bdAnnee').value){const m=date.match(/\d{4}/);if(m)document.getElementById('bdAnnee').value=m[0];}
+    if(serie&&!document.getElementById('itemTitre').value)document.getElementById('itemTitre').value=serie;
+    if(!document.getElementById('itemNom').value)document.getElementById('itemNom').value=nom;
+    if(publisher&&!document.getElementById('itemEditeur').value)document.getElementById('itemEditeur').value=publisher;
+    if(date&&!document.getElementById('itemAnnee').value){const m=date.match(/\d{4}/);if(m)document.getElementById('itemAnnee').value=m[0];}
     return true;
 }
 
@@ -1010,7 +1124,7 @@ function extraireSerie(titre) {
 
 async function downloadRemoteImageToCover(imageURL) {
     try{let blob;try{const r=await fetch(imageURL);if(!r.ok)throw new Error(r.status);blob=await r.blob();}catch(e){const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(imageURL)}`);if(!r.ok)throw new Error(r.status);blob=await r.blob();}
-    if(blob.size<5000)return;const file=new File([blob],'cover.jpg',{type:blob.type||'image/jpeg'});pendingCoverFile=file;
+    if(blob.size<5000)return;const file=new File([blob],'cover.jpg',{type:blob.type||'image/jpeg'});pendingPhotoFile=file;
     const reader=new FileReader();reader.onloadend=()=>{document.getElementById('imagePreview').src=reader.result;document.getElementById('imagePreview').style.display='block';};reader.readAsDataURL(blob);
     }catch(e){console.warn('Cover download failed:',e);}
 }
@@ -1030,12 +1144,197 @@ async function searchByTitle() {
 
 function selectSearchResult(index) {
     const r=window.__titleResults[index];if(!r)return;
-    const{serie,nom}=extraireSerie(r.titre);if(serie)document.getElementById('bdSerie').value=serie;
-    document.getElementById('bdNom').value=nom;document.getElementById('bdEdition').value=r.editeur||'';
-    if(r.annee)document.getElementById('bdAnnee').value=r.annee;
-    const m=r.titre.match(/(?:tome|t\.|vol|n°|#)\s*(\d+)/i);if(m)document.getElementById('bdNumero').value=m[1];
+    const{serie,nom}=extraireSerie(r.titre);if(serie)document.getElementById('itemTitre').value=serie;
+    document.getElementById('itemNom').value=nom;document.getElementById('itemEditeur').value=r.editeur||'';
+    if(r.annee)document.getElementById('itemAnnee').value=r.annee;
+    const m=r.titre.match(/(?:tome|t\.|vol|n°|#)\s*(\d+)/i);if(m)document.getElementById('itemNumero').value=m[1];
     if(r.volumeInfo&&r.volumeInfo.imageLinks){const url=(r.volumeInfo.imageLinks.large||r.volumeInfo.imageLinks.medium||r.volumeInfo.imageLinks.thumbnail||'').replace('http://','https://');if(url)downloadRemoteImageToCover(url);}
     document.getElementById('titleSearchSection').style.display='none';setScanStatus('✅ BD sélectionnée !','success');
+}
+
+// ==========================================
+// AFFICHAGE
+// ==========================================
+function collectionOptionsHTML(selectedId) {
+    const personneId = document.getElementById('personneSelect').value;
+    const filteredCollections = personneId ? collections.filter(c => String(c.personne_id) === String(personneId)) : collections;
+    return '<option value="">Sélectionner une collection</option>' + filteredCollections.map(c => {
+        const sel = String(selectedId || '') === String(c.id) ? ' selected' : '';
+        const icon = c.type === 'bd' ? '📚' : c.type === 'santon' ? '🎭' : c.type === 'vehicule' ? '🚗' : '🧱';
+        return `<option value="${c.id}"${sel}>${icon} ${escapeHtml(c.nom)}</option>`;
+    }).join('');
+}
+
+function updatePersonneSelector() {
+    const select = document.getElementById('personneSelect');
+    const current = select.value;
+    select.innerHTML = '<option value="">Toutes les personnes</option>' + personnes.map(p => `<option value="${p.id}">${escapeHtml(p.nom)}</option>`).join('');
+    select.value = current;
+}
+
+function updateCollectionSelector() {
+    const select = document.getElementById('collectionSelect');
+    const current = select.value;
+    const personneId = document.getElementById('personneSelect').value;
+    const filteredCollections = personneId ? collections.filter(c => String(c.personne_id) === String(personneId)) : collections;
+    select.innerHTML = '<option value="">Toutes les collections</option>' + filteredCollections.map(c => {
+        const icon = c.type === 'bd' ? '📚' : c.type === 'santon' ? '🎭' : c.type === 'vehicule' ? '🚗' : '🧱';
+        return `<option value="${c.id}">${icon} ${escapeHtml(c.nom)}</option>`;
+    }).join('');
+    select.value = current;
+}
+
+function changePersonne() { updateCollectionSelector(); renderItems(); }
+function changeCollection() { renderItems(); }
+
+function renderItems() {
+    const content = document.getElementById('content');
+    const personneId = document.getElementById('personneSelect').value;
+    const collectionId = document.getElementById('collectionSelect').value;
+    const searchText = document.getElementById('searchInput').value.toLowerCase();
+    
+    let filteredItems = items;
+    if (personneId) {
+        const personneCollections = collections.filter(c => String(c.personne_id) === String(personneId)).map(c => c.id);
+        filteredItems = filteredItems.filter(i => personneCollections.includes(i.collection_id));
+    }
+    if (collectionId) {
+        filteredItems = filteredItems.filter(i => String(i.collection_id) === String(collectionId));
+    }
+    if (searchText) {
+        filteredItems = filteredItems.filter(i => {
+            if (i.type === 'bd') {
+                return (i.nom||'').toLowerCase().includes(searchText) || (i.titre||'').toLowerCase().includes(searchText);
+            } else if (i.type === 'santon') {
+                return (i.reference_santon||'').toLowerCase().includes(searchText) || (i.nom||'').toLowerCase().includes(searchText);
+            } else if (i.type === 'vehicule') {
+                return (i.marque||'').toLowerCase().includes(searchText) || (i.modele||'').toLowerCase().includes(searchText) || (i.annees_participation||'').includes(searchText);
+            } else if (i.type === 'lego') {
+                return (i.gamme||'').toLowerCase().includes(searchText) || (i.reference_lego||'').toLowerCase().includes(searchText) || (i.nom||'').toLowerCase().includes(searchText);
+            }
+            return false;
+        });
+    }
+    
+    if (filteredItems.length === 0) {
+        content.innerHTML = `<div class="empty-state"><p>${searchText ? 'Aucun item trouvé' : 'Aucun item. Appuyez sur + pour en ajouter.'}</p></div>`;
+        return;
+    }
+    
+    const groups = {};
+    filteredItems.forEach(item => {
+        const collection = collections.find(c => String(c.id) === String(item.collection_id));
+        const key = collection ? `${collection.type}_${collection.nom}` : 'autre';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+    });
+    
+    const sortedKeys = Object.keys(groups).sort((a,b) => a.localeCompare(b,'fr'));
+    content.innerHTML = sortedKeys.map(key => {
+        const itemsList = groups[key];
+        const type = itemsList[0].type;
+        const icon = type === 'bd' ? '📚' : type === 'santon' ? '🎭' : type === 'vehicule' ? '🚗' : '🧱';
+        return `<div class="collection-group"><div class="collection-header"><h2>${icon} ${escapeHtml(key.split('_')[1])}</h2><span class="collection-count">${itemsList.length}</span></div>${itemsList.map(item => {
+            const photoHtml = item.photo_url ? `<img src="${item.photo_url}" class="item-photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="item-photo-placeholder" style="display:none">${icon}</div>` : `<div class="item-photo-placeholder">${icon}</div>`;
+            let details = '';
+            if (type === 'bd') {
+                details = `<p>${escapeHtml(item.titre || '')}${item.numero_album ? ' • Tome ' + escapeHtml(item.numero_album) : ''}</p>${item.editeur ? '<p>' + escapeHtml(item.editeur) + (item.annee_bd ? ' • ' + escapeHtml(item.annee_bd) : '') + '</p>' : ''}`;
+            } else if (type === 'santon') {
+                details = `<p>Réf: ${escapeHtml(item.reference_santon || '')}</p>`;
+            } else if (type === 'vehicule') {
+                details = `<p>${escapeHtml(item.type_vehicule || '')} • ${escapeHtml(item.marque || '')} ${escapeHtml(item.modele || '')}</p>${item.numero_vehicule ? '<p>N° ' + escapeHtml(item.numero_vehicule) + '</p>' : ''}${item.annees_participation ? '<p>' + escapeHtml(item.annees_participation) + '</p>' : ''}`;
+            } else if (type === 'lego') {
+                details = `<p>${escapeHtml(item.gamme || '')} • Réf: ${escapeHtml(item.reference_lego || '')}</p>${item.annee_lego ? '<p>' + escapeHtml(item.annee_lego) + '</p>' : ''}${item.nombre_pieces ? '<p>' + item.nombre_pieces + ' pièces</p>' : ''}`;
+            }
+            return `<div class="item-card" onclick="showDetail('${item.id}')">${photoHtml}<div class="item-info"><span class="type-badge ${type}">${type.toUpperCase()}</span><h3>${escapeHtml(item.nom || 'Sans nom')}</h3>${details}</div></div>`;
+        }).join('')}</div>`;
+    }).join('');
+}
+
+function filterItems() { renderItems(); }
+
+function showDetail(id) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const collection = collections.find(c => String(c.id) === String(item.collection_id));
+    const type = item.type;
+    const icon = type === 'bd' ? '📚' : type === 'santon' ? '🎭' : type === 'vehicule' ? '🚗' : '🧱';
+    
+    let html = '';
+    if (item.photo_url) html += `<img src="${item.photo_url}" class="detail-image" onerror="this.style.display='none'">`;
+    
+    html += '<div class="detail-info">';
+    html += `<div class="detail-row"><span class="detail-label">Type</span><span class="detail-value"><span class="type-badge ${type}">${icon} ${type.toUpperCase()}</span></span></div>`;
+    html += `<div class="detail-row"><span class="detail-label">Collection</span><span class="detail-value">${escapeHtml(collection?.nom || '')}</span></div>`;
+    
+    if (type === 'bd') {
+        if (item.nom) html += `<div class="detail-row"><span class="detail-label">Nom</span><span class="detail-value">${escapeHtml(item.nom)}</span></div>`;
+        if (item.titre) html += `<div class="detail-row"><span class="detail-label">Titre</span><span class="detail-value">${escapeHtml(item.titre)}</span></div>`;
+        if (item.numero_album) html += `<div class="detail-row"><span class="detail-label">Numéro</span><span class="detail-value">${escapeHtml(item.numero_album)}</span></div>`;
+        if (item.editeur) html += `<div class="detail-row"><span class="detail-label">Éditeur</span><span class="detail-value">${escapeHtml(item.editeur)}</span></div>`;
+        if (item.annee_bd) html += `<div class="detail-row"><span class="detail-label">Année</span><span class="detail-value">${escapeHtml(item.annee_bd)}</span></div>`;
+        if (item.isbn) html += `<div class="detail-row"><span class="detail-label">ISBN</span><span class="detail-value">${escapeHtml(item.isbn)}</span></div>`;
+    } else if (type === 'santon') {
+        if (item.reference_santon) html += `<div class="detail-row"><span class="detail-label">Référence</span><span class="detail-value">${escapeHtml(item.reference_santon)}</span></div>`;
+        if (item.nom) html += `<div class="detail-row"><span class="detail-label">Nom</span><span class="detail-value">${escapeHtml(item.nom)}</span></div>`;
+    } else if (type === 'vehicule') {
+        if (item.type_vehicule) html += `<div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">${escapeHtml(item.type_vehicule)}</span></div>`;
+        if (item.marque) html += `<div class="detail-row"><span class="detail-label">Marque</span><span class="detail-value">${escapeHtml(item.marque)}</span></div>`;
+        if (item.modele) html += `<div class="detail-row"><span class="detail-label">Modèle</span><span class="detail-value">${escapeHtml(item.modele)}</span></div>`;
+        if (item.numero_vehicule) html += `<div class="detail-row"><span class="detail-label">Numéro</span><span class="detail-value">${escapeHtml(item.numero_vehicule)}</span></div>`;
+        if (item.annees_participation) html += `<div class="detail-row"><span class="detail-label">Années</span><span class="detail-value">${escapeHtml(item.annees_participation)}</span></div>`;
+    } else if (type === 'lego') {
+        if (item.gamme) html += `<div class="detail-row"><span class="detail-label">Gamme</span><span class="detail-value">${escapeHtml(item.gamme)}</span></div>`;
+        if (item.nom) html += `<div class="detail-row"><span class="detail-label">Nom</span><span class="detail-value">${escapeHtml(item.nom)}</span></div>`;
+        if (item.reference_lego) html += `<div class="detail-row"><span class="detail-label">Référence</span><span class="detail-value">${escapeHtml(item.reference_lego)}</span></div>`;
+        if (item.annee_lego) html += `<div class="detail-row"><span class="detail-label">Année</span><span class="detail-value">${escapeHtml(item.annee_lego)}</span></div>`;
+        if (item.nombre_pieces) html += `<div class="detail-row"><span class="detail-label">Pièces</span><span class="detail-value">${item.nombre_pieces}</span></div>`;
+    }
+    
+    html += `<div class="detail-row"><span class="detail-label">Ajouté le</span><span class="detail-value">${new Date(item.date_ajout).toLocaleDateString('fr-FR')}</span></div>`;
+    html += '</div>';
+    
+    html += `<button class="btn btn-primary" onclick="openAddItem('${item.id}');closeModal('detailModal');">Modifier</button>`;
+    html += `<button class="btn btn-danger" onclick="deleteItem('${item.id}')">Supprimer</button>`;
+    
+    document.getElementById('detailContent').innerHTML = html;
+    document.getElementById('detailModal').classList.add('active');
+}
+
+function openManagePersonnes() {
+    document.getElementById('managePersonnesModal').classList.add('active');
+    renderPersonnesList();
+}
+
+function renderPersonnesList() {
+    const list = document.getElementById('personnesList');
+    if (!personnes.length) { list.innerHTML = '<p style="color:#8e8e93">Aucune personne</p>'; return; }
+    list.innerHTML = personnes.map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#f5f5f7;border-radius:8px;margin-bottom:8px"><span>${escapeHtml(p.nom)}</span><div><button onclick="renamePersonne('${p.id}')" style="background:#007AFF;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;margin-right:5px">✏️</button><button onclick="deletePersonne('${p.id}')" style="background:#ff3b30;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer">🗑️</button></div></div>`).join('');
+}
+
+function openManageCollections() {
+    document.getElementById('manageCollectionsModal').classList.add('active');
+    renderCollectionsList();
+}
+
+function renderCollectionsList() {
+    const list = document.getElementById('collectionsList');
+    const personneId = document.getElementById('personneSelect').value;
+    const filteredCollections = personneId ? collections.filter(c => String(c.personne_id) === String(personneId)) : collections;
+    
+    if (!filteredCollections.length) { 
+        list.innerHTML = '<p style="color:#8e8e93">Aucune collection</p>'; 
+        return; 
+    }
+    
+    list.innerHTML = filteredCollections.map(c => {
+        const icon = c.type === 'bd' ? '📚' : c.type === 'santon' ? '🎭' : c.type === 'vehicule' ? '🚗' : '🧱';
+        const typeLabel = c.type === 'bd' ? 'BD' : c.type === 'santon' ? 'Santons' : c.type === 'vehicule' ? 'Véhicules' : 'Lego';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f5f5f7;border-radius:8px;margin-bottom:8px">
+            <span style="font-size:16px;">${icon} ${typeLabel}</span>
+            <button onclick="deleteCollection('${c.id}')" style="background:#ff3b30;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer">🗑️</button>
+        </div>`;
+    }).join('');
 }
 
 // ==========================================
@@ -1043,17 +1342,20 @@ function selectSearchResult(index) {
 // ==========================================
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
-    if(modalId==='addBDModal'){
+    if (modalId === 'addItemModal') {
         stopScanner();
         if(lastCaptureObjectUrl){try{URL.revokeObjectURL(lastCaptureObjectUrl);}catch(e){}lastCaptureObjectUrl=null;}
-        document.getElementById('scannerSection').style.display='none';
-        document.getElementById('scanStatus').innerHTML='';
-        document.getElementById('capturePreview').style.display='none';
-        pendingCoverFile=null;
+        document.getElementById('scannerSection').style.display = 'none';
+        document.getElementById('titleSearchSection').style.display = 'none';
+        document.getElementById('bdActionButtons').style.display = 'none';
+        const scanStatus = document.getElementById('scanStatus');
+        if (scanStatus) scanStatus.innerHTML = '';
+        document.getElementById('capturePreview').style.display = 'none';
+        pendingPhotoFile = null;
     }
 }
 
-function escapeHtml(t){return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function escapeHtml(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // ==========================================
 // DÉMARRAGE
