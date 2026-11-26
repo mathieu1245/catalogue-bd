@@ -61,7 +61,6 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .btn-secondary { background:#f5f5f7; color:#1c1c1e; }
 .btn-danger { background:#ff3b30; color:#fff; }
 
-/* Zone scan BD : 6cm × 3cm */
 #reader { width: 6cm; height: 3cm; margin: 15px auto 0; border-radius: 8px; overflow: hidden; background: #000; border: 2px solid #007AFF; position: relative; }
 #reader video { width: 6cm !important; height: 3cm !important; object-fit: cover; display: block; }
 #reader canvas.drawingBuffer { display:none; }
@@ -105,9 +104,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .sync-indicator.error { background:#ff3b30; }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 
-/* Scanner Lego plein écran */
 .ls-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:#000; z-index:10000; overflow:hidden; }
-.ls-video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; }
 #legoReader { position:absolute; top:0; left:0; width:100%; height:100%; }
 #legoReader video { width:100%; height:100%; object-fit:cover; }
 .ls-topbar { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; gap:12px; padding:16px; z-index:6; }
@@ -664,7 +661,6 @@ function setLegoStatus(msg, type) {
     s.innerHTML = msg;
 }
 
-// ✅ Scan Lego avec Html5Qrcode (fonctionne sur Firefox/Mac)
 async function openLegoScanner() {
     const overlay = document.getElementById('legoScanOverlay');
     if (overlay.style.display !== 'none') { stopLegoScanner(); return; }
@@ -714,9 +710,7 @@ async function openLegoScanner() {
                 }
                 handling = false;
             },
-            (errorMessage) => {
-                // Erreur de détection normale, ignorée
-            }
+            () => {}
         );
         
         setLegoStatus('📷 Scanner actif', 'searching');
@@ -726,12 +720,10 @@ async function openLegoScanner() {
     }
 }
 
-// ✅ Capture photo pour OCR du n° de set
 async function legoCapture() {
     handling = false;
     setLegoStatus('<span class="loader"></span> Analyse...', 'searching');
     
-    // Récupérer la vidéo du scanner
     const readerEl = document.getElementById('legoReader');
     const video = readerEl.querySelector('video');
     if (!video || !video.videoWidth) {
@@ -744,7 +736,7 @@ async function legoCapture() {
     full.height = video.videoHeight;
     full.getContext('2d').drawImage(video, 0, 0);
     
-    // 1) Code-barres / QR sur toute l'image
+    // 1) Code-barres / QR
     let code = null;
     if ('BarcodeDetector' in window) {
         try { code = await detectWithBarcodeDetector(full); } catch (e) {}
@@ -764,11 +756,11 @@ async function legoCapture() {
         return;
     }
     
-    // 2) OCR du n° du set
+    // 2) OCR du n° du set - SANS binarisation
     setLegoStatus('<span class="loader"></span> Lecture du n° du set (OCR)...', 'searching');
     let num = null;
     try {
-        const crop = cropLegoZone(full, 2.0); // Zone élargie 2×
+        const crop = cropLegoZone(full, 3.0); // Zone 3× plus large
         num = await ocrSetNumber(crop);
     } catch (e) {
         console.error('Erreur OCR:', e);
@@ -778,16 +770,14 @@ async function legoCapture() {
         if (navigator.vibrate) navigator.vibrate(200);
         stopLegoScanner();
         const refInput = document.getElementById('itemReference');
-        console.log('✅ Tentative de remplissage du champ itemReference');
-        console.log('refInput existe:', !!refInput);
-        console.log('num:', num);
+        console.log('✅ Tentative de remplissage - refInput:', !!refInput, 'num:', num);
         if (refInput) {
             refInput.value = num;
             refInput.style.background = '#d4edda';
             setTimeout(() => { refInput.style.background = '#fff'; }, 1500);
             console.log('✅ n° de set rempli:', num);
         } else {
-            console.error('❌ Champ itemReference introuvable dans le DOM');
+            console.error('❌ Champ itemReference introuvable');
         }
         return;
     }
@@ -795,6 +785,7 @@ async function legoCapture() {
     setLegoStatus('⚠️ Rien détecté. Réessayez ou tapez le numéro.', 'error');
 }
 
+// ✅ SANS binarisation - Tesseract 5 gère mieux la couleur/niveaux de gris
 function cropLegoZone(fullCanvas, expansionFactor = 1.0) {
     const overlay = document.getElementById('legoScanOverlay');
     const zone = overlay.querySelector('.ls-zone');
@@ -823,30 +814,23 @@ function cropLegoZone(fullCanvas, expansionFactor = 1.0) {
     }
     const UPSCALE = 5;
     const crop = document.createElement('canvas');
-    crop.width = Math.max(200, sw * UPSCALE);
-    crop.height = Math.max(100, sh * UPSCALE);
+    crop.width = Math.max(300, sw * UPSCALE);
+    crop.height = Math.max(150, sh * UPSCALE);
     const ctx = crop.getContext('2d');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
-    const imgData = ctx.getImageData(0, 0, crop.width, crop.height);
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-        const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-        const val = gray > 128 ? 255 : 0;
-        data[i] = data[i+1] = data[i+2] = val;
-        data[i+3] = 255;
-    }
-    ctx.putImageData(imgData, 0, 0);
+    // ❌ PAS de binarisation - Tesseract 5 gère mieux la couleur
     return crop;
 }
 
+// ✅ PSM SINGLE_WORD au lieu de SINGLE_LINE
 async function ocrSetNumber(canvas) {
     if (!window.Tesseract) { await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'); }
     const worker = await Tesseract.createWorker('eng', 1, {
         logger: m => { if (m.status === 'recognizing text') setLegoStatus(`<span class="loader"></span> OCR... ${Math.round(m.progress * 100)}%`, 'searching'); }
     });
-    await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE });
+    await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD });
     const { data } = await worker.recognize(canvas);
     await worker.terminate();
     const text = (data.text || '').replace(/\s+/g, ' ').trim();
