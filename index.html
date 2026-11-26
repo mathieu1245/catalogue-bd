@@ -143,9 +143,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <div class="modal" id="collsModal"><div class="modal-content">
   <div class="modal-header"><h2>Collections</h2><button class="close-btn" onclick="closeModal('collsModal')">&times;</button></div>
-  <p style="font-size:13px;color:#8e8e93;margin-bottom:10px">Pour la personne sélectionnée.</p>
-  <div class="form-group"><label>Nom</label><input type="text" id="newCollName" placeholder="Ex: Mes BD"></div>
-  <div class="form-group"><label>Type</label><select id="newCollType"></select></div>
+  <p style="font-size:13px;color:#8e8e93;margin-bottom:10px">Choisissez simplement le type : la collection prend son nom (modifiable ensuite avec ✏️).</p>
+    <div class="form-group"><label>Type</label><select id="newCollType"></select></div>
   <button class="btn btn-primary" style="margin-top:0" onclick="addColl()">Ajouter</button>
   <div id="collsList" style="margin-top:15px"></div>
 </div></div>
@@ -257,8 +256,9 @@ function openColls(){
 function renderColls(){
  $('collsList').innerHTML=collections.filter(c=>c.person_id===personId).map(c=>`<div class="li"><span>${TYPES[c.type]?.i||''} ${esc(c.nom)}</span><div><button style="background:#007AFF" onclick="renameColl('${c.id}')">✏️</button><button style="background:#ff3b30" onclick="delColl('${c.id}')">🗑️</button></div></div>`).join('')||'<p style="color:#8e8e93">Aucune collection</p>';
 }
-async function addColl(){const nom=$('newCollName').value.trim();if(!nom)return;
- await run(async()=>{const r=await sb.from('collections').insert({user_id:user.id,person_id:personId,nom,type:$('newCollType').value}).select().single();ck(r);collId=r.data.id;$('newCollName').value='';});renderColls();}
+async function addColl(){
+ const type=$('newCollType').value,n=collections.filter(c=>c.person_id===personId&&c.type===type).length,nom=n?`${TYPES[type].l} ${n+1}`:TYPES[type].l;
+ await run(async()=>{const r=await sb.from('collections').insert({user_id:user.id,person_id:personId,nom,type}).select().single();ck(r);collId=r.data.id;});renderColls();}
 async function renameColl(id){const nom=prompt('Nouveau nom :');if(!nom?.trim())return;await run(async()=>ck(await sb.from('collections').update({nom:nom.trim()}).eq('id',id)));renderColls();}
 async function delColl(id){if(!confirm('Supprimer cette collection et son contenu ?'))return;await run(async()=>ck(await sb.from('collections').delete().eq('id',id)));renderColls();}
 
@@ -333,6 +333,23 @@ async function getJson(url,opt){
  if(opt?.headers)throw new Error('lookup');
  const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url));if(!r.ok)throw new Error(r.status);return r.json();
 }
+async function fetchLegoPage(set){ // lego.com n'autorise pas les appels directs depuis un navigateur : on passe par des relais publics
+ const url=`https://www.lego.com/fr-fr/product/${set}`;
+ for(const px of['https://corsproxy.io/?','https://api.allorigins.win/raw?url=']){
+  try{const r=await fetch(px+encodeURIComponent(url));if(!r.ok)continue;const t=await r.text();
+   if(/og:title|ld\+json/.test(t)&&t.includes(set))return t;}catch(e){}
+ }return null;
+}
+function parseLego(html,set){
+ const doc=new DOMParser().parseFromString(html,'text/html'),m=k=>doc.querySelector(`meta[property="${k}"]`)?.content||'';
+ // titre type « Nom 43217 | Gamme | Boutique LEGO® officielle »
+ const parts=(m('og:title')||doc.title||'').split('|').map(x=>x.trim());
+ const clean=x=>(x||'').replace(/[™®]/g,'').replace(/^LEGO\s*/i,'').trim();
+ const nom=clean((parts[0]||'').replace(new RegExp('\\s*'+set+'\\s*$'),'').replace(/^LEGO®?\s*/i,''));
+ const gamme=parts.length>2?clean(parts[1]):'';
+ const n=(html.match(/"(?:pieceCount|pieces|numberOfPieces)"\s*:\s*"?(\d{1,5})/i)||html.match(/(\d{1,5})\s*(?:pièces|pieces)\b/i)||[])[1]||'';
+ return{nom,gamme,pieces:n,image:m('og:image')};
+}
 async function lookupLego(raw){
  const p=legoParse(raw);if(!p){status('❌ Code non reconnu','error');return;}
  status('<span class="loader"></span> Recherche...','searching');
@@ -343,15 +360,23 @@ async function lookupLego(raw){
   if(!set){status(titre?'⚠️ N° de set introuvable dans « '+esc(titre)+' ». Saisissez la référence.':'⚠️ Code-barres inconnu. Saisissez la référence à la main.','error');return;}
  }
  const ref=$('f_reference');if(ref)ref.value=set;
- if(!REBRICKABLE_KEY){status('✅ Set n° '+set+'<br><small>Ajoutez une clé Rebrickable (REBRICKABLE_KEY) pour remplir aussi nom, année, pièces et photo.</small>','success');return;}
- try{
-  const H={headers:{Authorization:'key '+REBRICKABLE_KEY}},s=await getJson(`https://rebrickable.com/api/v3/lego/sets/${set}-1/`,H);
-  setField('nom',s.name);setField('annee',String(s.year||''));setField('pieces',String(s.num_parts||''));
-  if(s.set_img_url)getCover(s.set_img_url);
-  let id=s.theme_id,name='';
-  for(let n=0;id&&n<5;n++){const t=await getJson(`https://rebrickable.com/api/v3/lego/themes/${id}/`,H);name=t.name;id=t.parent_id;}
-  setField('gamme',name);status('✅ Set '+set+' : '+esc(s.name),'success');
- }catch(e){status('⚠️ Set '+set+' non trouvé automatiquement. Complétez à la main.','error');}
+ const src=[];let hasImg=false;
+ // 1) lego.com : nom, gamme, pièces, image
+ try{const html=await fetchLegoPage(set);
+  if(html){const d=parseLego(html,set);
+   if(d.nom){setField('nom',d.nom);src.push('lego.com');}
+   setField('gamme',d.gamme);setField('pieces',d.pieces);
+   if(d.image){getCover(d.image);hasImg=true;}}}catch(e){}
+ // 2) Rebrickable (si clé renseignée) : année, et ce qui manque
+ if(REBRICKABLE_KEY){
+  try{const H={headers:{Authorization:'key '+REBRICKABLE_KEY}},s=await getJson(`https://rebrickable.com/api/v3/lego/sets/${set}-1/`,H);
+   setField('nom',s.name);setField('annee',String(s.year||''));setField('pieces',String(s.num_parts||''));
+   if(s.set_img_url&&!hasImg)getCover(s.set_img_url);
+   if(!$('f_gamme').value){let id=s.theme_id,name='';for(let n=0;id&&n<5;n++){const t=await getJson(`https://rebrickable.com/api/v3/lego/themes/${id}/`,H);name=t.name;id=t.parent_id;}setField('gamme',name);}
+   src.push('Rebrickable');}catch(e){}
+ }
+ if(src.length)status(`✅ Set ${set} : ${esc($('f_nom').value||'')}<br><small>Source : ${src.join(' + ')}${$('f_annee').value?'':' · année à saisir'}</small>`,'success');
+ else status(`⚠️ Set ${set} : fiche introuvable automatiquement (lego.com bloque souvent les accès depuis un navigateur). Complétez à la main.`,'error');
 }
 
 // ===== BD : recherche ISBN (Google Books → Open Library → BnF) et par titre
