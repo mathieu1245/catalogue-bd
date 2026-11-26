@@ -900,11 +900,13 @@ async function legoCapture() {
     full.width = srcVideo.videoWidth; full.height = srcVideo.videoHeight;
     full.getContext('2d').drawImage(srcVideo, 0, 0);
 
+    // 1) Code-barres / QR sur toute l'image
     let code = null;
     if ('BarcodeDetector' in window) { try { code = await detectWithBarcodeDetector(full); } catch (e) {} }
     if (!code && window.Quagga) { try { code = await decodeWithQuagga(full); } catch (e) {} }
     if (code) { legoDecoded(code, 'Code-barres (photo)'); return; }
 
+    // 2) OCR du n° du set dans la zone pointillée (avec upscale 4×)
     setLegoStatus('<span class="loader"></span> Lecture du n° du set (OCR)...', 'searching');
     try {
         const crop = cropLegoZone(full);
@@ -915,6 +917,7 @@ async function legoCapture() {
     setLegoStatus('⚠️ Rien détecté. Réessayez ou tapez le numéro.', 'error');
 }
 
+// 🎯 CORRECTION : crop + upscale 4× pour que Tesseract ait assez de pixels
 function cropLegoZone(fullCanvas) {
     const overlay = document.getElementById('legoScanOverlay');
     const zone = overlay.querySelector('.ls-zone');
@@ -927,9 +930,16 @@ function cropLegoZone(fullCanvas) {
     const sy = Math.max(0, Math.round((zr.top + oy) / scale));
     const sw = Math.max(1, Math.min(vw - sx, Math.round(zr.width / scale)));
     const sh = Math.max(1, Math.min(vh - sy, Math.round(zr.height / scale)));
+
+    // Upscale 4× pour Tesseract (hauteur cible ~300px au lieu de ~75px)
+    const UPSCALE = 4;
     const crop = document.createElement('canvas');
-    crop.width = sw; crop.height = sh;
-    crop.getContext('2d').drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    crop.width = sw * UPSCALE;
+    crop.height = sh * UPSCALE;
+    const ctx = crop.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
     return crop;
 }
 
@@ -939,6 +949,7 @@ async function ocrSetNumber(blob) {
     const { data } = await worker.recognize(blob);
     await worker.terminate();
     const text = (data.text || '').replace(/\s+/g, ' ');
+    // Cherche un numéro de 4 à 7 chiffres (format Lego : ex. 75192, 10326)
     const m = text.match(/\b\d{4,7}\b/);
     return m ? m[0] : null;
 }
