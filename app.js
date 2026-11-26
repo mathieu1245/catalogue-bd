@@ -3,7 +3,7 @@
   if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) { alert('Configurez config.js'); return; }
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
   let currentUser = null, allPersonnes = [], allItems = [], isSignUpMode = false, currentDetailItem = null;
-  const $ = (id) => document.getElementById(id);
+  const $ = (id) => document.getElementById(id) || { addEventListener:()=>{}, style:{}, value:"all", options:[], innerHTML:"" };
   const esc = (s) => String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
   const CATS = {
