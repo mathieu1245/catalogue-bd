@@ -113,8 +113,6 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .ls-topbar { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; gap:12px; padding:16px; z-index:6; }
 .ls-close { width:46px; height:46px; border-radius:50%; border:none; background:rgba(0,0,0,.55); color:#fff; font-size:20px; cursor:pointer; }
 .ls-badge { padding:10px 18px; border-radius:24px; background:rgba(0,0,0,.55); color:#fff; font-size:14px; font-weight:600; }
-
-/* Zone OCR : 6 cm × 1,5 cm centrée */
 .ls-zone {
     position: absolute;
     left: 50%;
@@ -134,8 +132,6 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
     padding: 3px 10px; border-radius: 6px;
     white-space: nowrap;
 }
-
-/* Viseur code-barres : 6 cm × 3 cm centré */
 .ls-viewfinder {
     position: absolute;
     left: 50%;
@@ -160,7 +156,6 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
     animation: laser 2s ease-in-out infinite;
 }
 @keyframes laser { 0%,100% { transform:translateY(-25px); } 50% { transform:translateY(25px); } }
-
 .ls-hint { position:absolute; left:0; right:0; bottom:170px; text-align:center; color:#fff; font-size:17px; font-weight:600; padding:0 24px; z-index:4; text-shadow:0 1px 6px rgba(0,0,0,.9); }
 .ls-actions { position:absolute; left:0; right:0; bottom:95px; display:flex; justify-content:center; gap:14px; z-index:6; padding:0 16px; }
 .ls-btn { display:flex; align-items:center; gap:8px; padding:14px 20px; border:none; border-radius:26px; background:rgba(0,0,0,.6); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
@@ -673,6 +668,7 @@ async function openLegoScanner() {
     const overlay = document.getElementById('legoScanOverlay');
     if (overlay.style.display !== 'none') { stopLegoScanner(); return; }
     stopBDScanner();
+    handling = false; // 🔓 Réinitialise le verrou à l'ouverture
     overlay.style.display = 'block';
     document.getElementById('legoBadge').textContent = '🧱 Sets · ' + legoCount();
     document.getElementById('legoManual').style.display = 'none';
@@ -696,7 +692,7 @@ async function openLegoScanner() {
             numOfWorkers: Math.min(4, navigator.hardwareConcurrency || 2),
             frequency: 10, decoder: { readers: ['ean_reader', 'code_128_reader', 'code_39_reader'] }, locate: true
         }, (err) => {
-            if (err) { setLegoStatus('❌ Scanner indisponible. Tapez le numéro ou utilisez Capturer.', 'error'); toggleLegoManual(true); return; }
+            if (err) { setLegoStatus('⚠️ Live-scan indisponible, utilisez "Capturer".', 'searching'); return; }
             legoQuaggaActive = true;
             legoQuaggaHandler = (res) => { const code = (res?.codeResult?.code || '').trim(); if (!code) return; legoDecoded(code, 'Code-barres'); };
             Quagga.onDetected(legoQuaggaHandler); Quagga.start();
@@ -726,18 +722,26 @@ async function startLegoDetectLoop(video) {
     }, 250);
 }
 
+// ✅ legoDecoded rendu robuste : ne bloque plus si handling est coincé
 function legoDecoded(value, method) {
-    if (handling) return;
+    if (handling) { handling = false; } // force la réinitialisation si bloqué
     handling = true;
     if (navigator.vibrate) navigator.vibrate(200);
     stopLegoScanner();
     const refInput = document.getElementById('itemReference');
-    if (refInput) { refInput.value = value; refInput.style.background = '#d4edda'; setTimeout(() => { refInput.style.background = '#fff'; }, 1500); }
+    if (refInput) {
+        refInput.value = value;
+        refInput.style.background = '#d4edda';
+        setTimeout(() => { refInput.style.background = '#fff'; }, 1500);
+    } else {
+        console.warn('Champ itemReference introuvable');
+    }
     handling = false;
 }
 
-// 🎯 NOUVELLE VERSION ROBUSTE DE legoCapture
+// ✅ legoCapture : remplit le champ DIRECTEMENT, sans dépendre de legoDecoded
 async function legoCapture() {
+    handling = false; // 🔓 déverrouille avant l'analyse
     setLegoStatus('<span class="loader"></span> Analyse...', 'searching');
     const myVideo = document.getElementById('legoVideo');
     const quaggaVideo = document.querySelector('#legoQuaggaHost video');
@@ -754,26 +758,13 @@ async function legoCapture() {
     if (!code && window.Quagga) { try { code = await decodeWithQuagga(full); } catch (e) {} }
     if (code) { legoDecoded(code, 'Code-barres (photo)'); return; }
 
-    // 2) OCR : on essaie d'abord la zone précise, puis une zone plus large en fallback
+    // 2) OCR avec 3 zones de plus en plus larges
     setLegoStatus('<span class="loader"></span> Lecture du n° du set (OCR)...', 'searching');
     let num = null;
-    try {
-        // Essai 1 : crop précis de la zone "n° du set"
-        const crop1 = cropLegoZone(full, 1.0);
-        num = await ocrSetNumber(crop1);
-    } catch (e) {}
-    
+    try { num = await ocrSetNumber(cropLegoZone(full, 1.0)); } catch (e) {}
+    if (!num) { try { num = await ocrSetNumber(cropLegoZone(full, 2.0)); } catch (e) {} }
     if (!num) {
         try {
-            // Essai 2 : zone plus large (2× la hauteur) pour tolérer les imprécisions
-            const crop2 = cropLegoZone(full, 2.0);
-            num = await ocrSetNumber(crop2);
-        } catch (e) {}
-    }
-    
-    if (!num) {
-        try {
-            // Essai 3 : toute la moitié supérieure de l'image
             const halfTop = document.createElement('canvas');
             halfTop.width = full.width;
             halfTop.height = Math.floor(full.height * 0.5);
@@ -781,48 +772,51 @@ async function legoCapture() {
             num = await ocrSetNumber(halfTop);
         } catch (e) {}
     }
-    
-    if (num) { legoDecoded(num, 'OCR n° du set'); return; }
+
+    if (num) {
+        // ✅ Remplissage DIRECT du champ (ne passe plus par legoDecoded)
+        if (navigator.vibrate) navigator.vibrate(200);
+        stopLegoScanner();
+        const refInput = document.getElementById('itemReference');
+        if (refInput) {
+            refInput.value = num;
+            refInput.style.background = '#d4edda';
+            setTimeout(() => { refInput.style.background = '#fff'; }, 1500);
+            console.log('✅ n° de set rempli dans le champ :', num);
+        } else {
+            console.error('❌ Champ itemReference introuvable dans le DOM');
+        }
+        return;
+    }
     setLegoStatus('⚠️ Rien détecté. Réessayez ou tapez le numéro.', 'error');
 }
 
-// 🎯 NOUVEAU : crop avec facteur d'expansion + upscale + conversion niveaux de gris
 function cropLegoZone(fullCanvas, expansionFactor = 1.0) {
     const overlay = document.getElementById('legoScanOverlay');
     const zone = overlay.querySelector('.ls-zone');
     const ow = overlay.clientWidth, oh = overlay.clientHeight;
     const zr = zone.getBoundingClientRect();
     const vw = fullCanvas.width, vh = fullCanvas.height;
-    
-    // Calcul du ratio entre l'overlay affiché et la vidéo
-    // La vidéo est en object-fit:cover → elle remplit l'overlay en rognant
     const videoAspect = vw / vh;
     const overlayAspect = ow / oh;
-    
     let sx, sy, sw, sh;
     if (videoAspect > overlayAspect) {
-        // Vidéo plus large que l'overlay → rognage horizontal
         const displayHeight = oh;
         const displayWidth = oh * videoAspect;
         const offsetX = (displayWidth - ow) / 2;
-        const scale = displayWidth / ow;
         sx = Math.max(0, Math.round((zr.left + offsetX) * (vw / displayWidth)));
         sy = Math.max(0, Math.round(zr.top * (vh / displayHeight)));
         sw = Math.min(vw - sx, Math.round(zr.width * expansionFactor * (vw / displayWidth)));
         sh = Math.min(vh - sy, Math.round(zr.height * expansionFactor * (vh / displayHeight)));
     } else {
-        // Vidéo plus haute que l'overlay → rognage vertical
         const displayWidth = ow;
         const displayHeight = ow / videoAspect;
         const offsetY = (displayHeight - oh) / 2;
-        const scale = displayHeight / oh;
         sx = Math.max(0, Math.round(zr.left * (vw / displayWidth)));
         sy = Math.max(0, Math.round((zr.top + offsetY) * (vh / displayHeight)));
         sw = Math.min(vw - sx, Math.round(zr.width * expansionFactor * (vw / displayWidth)));
         sh = Math.min(vh - sy, Math.round(zr.height * expansionFactor * (vh / displayHeight)));
     }
-    
-    // Upscale 5× pour Tesseract
     const UPSCALE = 5;
     const crop = document.createElement('canvas');
     crop.width = Math.max(200, sw * UPSCALE);
@@ -831,19 +825,15 @@ function cropLegoZone(fullCanvas, expansionFactor = 1.0) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
-    
-    // Conversion en niveaux de gris + augmentation du contraste
     const imgData = ctx.getImageData(0, 0, crop.width, crop.height);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
         const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-        // Binarisation simple (seuil 128)
         const val = gray > 128 ? 255 : 0;
         data[i] = data[i+1] = data[i+2] = val;
         data[i+3] = 255;
     }
     ctx.putImageData(imgData, 0, 0);
-    
     return crop;
 }
 
@@ -852,19 +842,12 @@ async function ocrSetNumber(canvas) {
     const worker = await Tesseract.createWorker('eng', 1, {
         logger: m => { if (m.status === 'recognizing text') setLegoStatus(`<span class="loader"></span> OCR... ${Math.round(m.progress * 100)}%`, 'searching'); }
     });
-    // 🎯 PSM 7 = single text line, PSM 8 = single word
-    await worker.setParameters({
-        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE
-    });
+    await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE });
     const { data } = await worker.recognize(canvas);
     await worker.terminate();
-    
     const text = (data.text || '').replace(/\s+/g, ' ').trim();
     console.log('OCR text:', text);
-    
-    // Regex tolérant : cherche un nombre de 3 à 7 chiffres (Lego : ex. 75192, 10326, 42143, 60404)
-    // Accepte aussi avec tirets ou espaces
-    const m = text.match(/\b(\d{3,7})\b/);
+    const m = text.match(/(\d{3,7})/);
     return m ? m[1] : null;
 }
 
