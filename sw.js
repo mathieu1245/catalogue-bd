@@ -1,4 +1,4 @@
-const CACHE_NAME = 'collection-v5';
+const CACHE_NAME = 'collection-v6';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './bd.js', './lego.js', './manifest.json'];
 
 self.addEventListener('install', (e) => {
