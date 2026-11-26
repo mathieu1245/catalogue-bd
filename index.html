@@ -60,9 +60,20 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .btn-primary { background:#007AFF; color:#fff; }
 .btn-secondary { background:#f5f5f7; color:#1c1c1e; }
 .btn-danger { background:#ff3b30; color:#fff; }
-#reader { width:100%; margin:15px auto 0; border-radius:10px; overflow:hidden; }
-#reader video { width:100%; display:block; }
+
+/* ===== ZONE SCAN BD (dans le modal) ===== */
+#reader { 
+    width:100%; 
+    min-height:280px; 
+    margin:15px auto 0; 
+    border-radius:12px; 
+    overflow:hidden; 
+    background:#000;
+    border:2px solid #e5e5ea;
+}
+#reader video { width:100%; height:100%; object-fit:cover; display:block; }
 #reader canvas.drawingBuffer { display:none; }
+
 .scan-zone { background:#f5f5f7; border-radius:12px; padding:14px; margin-bottom:12px; }
 .scan-zone h3 { font-size:15px; margin-bottom:8px; }
 .scan-zone .btn-secondary { background:#fff; border:1px solid #e5e5ea; }
@@ -102,7 +113,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .sync-indicator.error { background:#ff3b30; }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 
-/* ========== SCANNER LEGO PLEIN ÉCRAN ========== */
+/* ========== SCANNER LEGO PLEIN ÉCRAN (redimensionné) ========== */
 .ls-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:#000; z-index:10000; overflow:hidden; }
 .ls-video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; }
 #legoQuaggaHost { position:absolute; top:0; left:0; right:0; bottom:0; }
@@ -111,16 +122,49 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .ls-topbar { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; gap:12px; padding:16px; z-index:6; }
 .ls-close { width:46px; height:46px; border-radius:50%; border:none; background:rgba(0,0,0,.55); color:#fff; font-size:20px; cursor:pointer; }
 .ls-badge { padding:10px 18px; border-radius:24px; background:rgba(0,0,0,.55); color:#fff; font-size:14px; font-weight:600; }
-.ls-zone { position:absolute; left:8%; right:8%; top:20%; height:13%; border:2px dashed rgba(255,255,255,.9); border-radius:10px; z-index:4; }
-.ls-zone-label { position:absolute; top:-13px; left:14px; background:#000; color:#fff; font-size:12px; font-weight:700; padding:3px 10px; border-radius:6px; }
-.ls-viewfinder { position:absolute; left:12%; right:12%; top:42%; height:24%; z-index:4; }
-.ls-corner { position:absolute; width:36px; height:36px; border-color:#fff; border-style:solid; border-width:0; }
-.ls-corner.tl { top:0; left:0; border-width:4px 0 0 4px; border-radius:10px 0 0 0; }
-.ls-corner.tr { top:0; right:0; border-width:4px 4px 0 0; border-radius:0 10px 0 0; }
-.ls-corner.bl { bottom:0; left:0; border-width:0 0 4px 4px; border-radius:0 0 0 10px; }
-.ls-corner.br { bottom:0; right:0; border-width:0 4px 4px 0; border-radius:0 0 10px 0; }
-.ls-laser { position:absolute; left:10%; right:10%; top:50%; height:2px; background:#ff3b30; box-shadow:0 0 10px #ff3b30; animation:laser 2.2s ease-in-out infinite; }
-@keyframes laser { 0%,100% { transform:translateY(-28px); } 50% { transform:translateY(28px); } }
+
+/* Zone pointillée "n° du set" - AGRANDIE */
+.ls-zone { 
+    position:absolute; 
+    left:6%; right:6%; 
+    top:18%; 
+    height:16%; 
+    border:3px dashed rgba(255,255,255,.95); 
+    border-radius:12px; 
+    z-index:4; 
+}
+.ls-zone-label { 
+    position:absolute; 
+    top:-14px; left:16px; 
+    background:#000; color:#fff; 
+    font-size:13px; font-weight:700; 
+    padding:4px 12px; border-radius:6px; 
+}
+
+/* Viseur avec coins + laser - AGRANDI et mieux centré */
+.ls-viewfinder { 
+    position:absolute; 
+    left:8%; right:8%; 
+    top:40%; 
+    height:30%; 
+    z-index:4; 
+}
+.ls-corner { position:absolute; width:44px; height:44px; border-color:#fff; border-style:solid; border-width:0; }
+.ls-corner.tl { top:0; left:0; border-width:5px 0 0 5px; border-radius:12px 0 0 0; }
+.ls-corner.tr { top:0; right:0; border-width:5px 5px 0 0; border-radius:0 12px 0 0; }
+.ls-corner.bl { bottom:0; left:0; border-width:0 0 5px 5px; border-radius:0 0 0 12px; }
+.ls-corner.br { bottom:0; right:0; border-width:0 5px 5px 0; border-radius:0 0 12px 0; }
+.ls-laser { 
+    position:absolute; 
+    left:8%; right:8%; 
+    top:50%; 
+    height:3px; 
+    background:#ff3b30; 
+    box-shadow:0 0 12px #ff3b30, 0 0 24px rgba(255,59,48,.5); 
+    animation:laser 2s ease-in-out infinite; 
+}
+@keyframes laser { 0%,100% { transform:translateY(-35px); } 50% { transform:translateY(35px); } }
+
 .ls-hint { position:absolute; left:0; right:0; bottom:170px; text-align:center; color:#fff; font-size:17px; font-weight:600; padding:0 24px; z-index:4; text-shadow:0 1px 6px rgba(0,0,0,.9); }
 .ls-actions { position:absolute; left:0; right:0; bottom:95px; display:flex; justify-content:center; gap:14px; z-index:6; padding:0 16px; }
 .ls-btn { display:flex; align-items:center; gap:8px; padding:14px 20px; border:none; border-radius:26px; background:rgba(0,0,0,.6); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
@@ -745,7 +789,6 @@ async function openLegoScanner() {
     }
 
     if ('BarcodeDetector' in window) {
-        // Chrome / Android : caméra native + détection QR + code-barres en direct
         try {
             legoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
         } catch (e) {
@@ -757,7 +800,6 @@ async function openLegoScanner() {
         await video.play().catch(() => {});
         startLegoDetectLoop(video);
     } else if (window.Quagga) {
-        // Firefox / Safari : Quagga2 en direct (EAN, code-128...)
         const host = document.getElementById('legoQuaggaHost');
         Quagga.init({
             inputStream: {
@@ -786,7 +828,6 @@ async function openLegoScanner() {
             Quagga.start();
         });
     } else {
-        // Ni BarcodeDetector ni Quagga : caméra simple pour Capturer
         try {
             legoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
             const video = document.getElementById('legoVideo');
@@ -848,13 +889,11 @@ async function legoCapture() {
     full.width = srcVideo.videoWidth; full.height = srcVideo.videoHeight;
     full.getContext('2d').drawImage(srcVideo, 0, 0);
 
-    // 1) Code-barres / QR sur toute l'image
     let code = null;
     if ('BarcodeDetector' in window) { try { code = await detectWithBarcodeDetector(full); } catch (e) {} }
     if (!code && window.Quagga) { try { code = await decodeWithQuagga(full); } catch (e) {} }
     if (code) { legoDecoded(code, 'Code-barres (photo)'); return; }
 
-    // 2) OCR du n° du set dans la zone pointillée
     setLegoStatus('<span class="loader"></span> Lecture du n° du set (OCR)...', 'searching');
     try {
         const crop = cropLegoZone(full);
