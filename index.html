@@ -306,11 +306,12 @@ async function getCover(url){
 }
 
 // ===== Codes : ISBN (BD) · n° de set ou EAN (Lego) · texte brut (autres)
-const REBRICKABLE_KEY='b696ef57a6d01828d230b9db3167260f';
+const REBRICKABLE_KEY=''; // ← collez ici votre clé gratuite entre les guillemets (rebrickable.com → Compte → Paramètres → API)
 async function rb(path){ // en-tête d'autorisation, puis paramètre ?key= si le navigateur refuse l'en-tête
  const u='https://rebrickable.com/api/v3/lego/'+path;
- for(const f of[()=>fetch(u,{headers:{Authorization:'key '+REBRICKABLE_KEY}}),()=>fetch(u+'?key='+REBRICKABLE_KEY)]){try{const r=await f();if(r.ok)return await r.json();}catch(e){}}
- throw new Error('rebrickable');
+ const errs=[];
+ for(const f of[()=>fetch(u,{headers:{Authorization:'key '+REBRICKABLE_KEY}}),()=>fetch(u+'?key='+REBRICKABLE_KEY)]){try{const r=await f();if(r.ok)return await r.json();errs.push('HTTP '+r.status);}catch(e){errs.push('réseau/CORS');}}
+ throw new Error(errs.join(' puis '));
 }
 function isbn13ok(s){if(!/^97[89]\d{10}$/.test(s))return false;let n=0;for(let i=0;i<12;i++)n+=+s[i]*(i%2?3:1);return(10-n%10)%10===+s[12];}
 function isbn10ok(s){if(!/^\d{9}[\dX]$/.test(s))return false;let n=0;for(let i=0;i<10;i++)n+=(s[i]==='X'?10:+s[i])*(10-i);return n%11===0;}
@@ -365,23 +366,24 @@ async function lookupLego(raw){
   if(!set){status(titre?'⚠️ N° de set introuvable dans « '+esc(titre)+' ». Saisissez la référence.':'⚠️ Code-barres inconnu. Saisissez la référence à la main.','error');return;}
  }
  const ref=$('f_reference');if(ref)ref.value=set;
- const src=[];let hasImg=false;
+ const src=[],why=[];let hasImg=false;
  // 1) lego.com : nom, gamme, pièces, image
  try{const html=await fetchLegoPage(set);
   if(html){const d=parseLego(html,set);
-   if(d.nom){setField('nom',d.nom);src.push('lego.com');}
+   if(d.nom){setField('nom',d.nom);src.push('lego.com');}else why.push('lego.com : page reçue mais illisible');
    setField('gamme',d.gamme);setField('pieces',d.pieces);
-   if(d.image){getCover(d.image);hasImg=true;}}}catch(e){}
+   if(d.image){getCover(d.image);hasImg=true;}}
+  else why.push('lego.com : accès refusé par les relais');}catch(e){why.push('lego.com : '+e.message);}
  // 2) Rebrickable (si clé renseignée) : année, et ce qui manque
  if(REBRICKABLE_KEY){
   try{const s=await rb(`sets/${set}-1/`);
    setField('nom',s.name);setField('annee',String(s.year||''));setField('pieces',String(s.num_parts||''));
    if(s.set_img_url&&!hasImg)getCover(s.set_img_url);
    if(!$('f_gamme').value){let id=s.theme_id,name='';for(let n=0;id&&n<5;n++){const t=await rb(`themes/${id}/`);name=t.name;id=t.parent_id;}setField('gamme',name);}
-   src.push('Rebrickable');}catch(e){}
- }
+   src.push('Rebrickable');}catch(e){why.push('Rebrickable : '+e.message);}
+ }else why.push('Rebrickable : aucune clé dans le fichier');
  if(src.length)status(`✅ Set ${set} : ${esc($('f_nom').value||'')}<br><small>Source : ${src.join(' + ')}${$('f_annee').value?'':' · année à saisir'}</small>`,'success');
- else status(`⚠️ Set ${set} : fiche introuvable automatiquement (lego.com bloque souvent les accès depuis un navigateur). Complétez à la main.`,'error');
+ else status(`⚠️ Set ${set} : fiche introuvable automatiquement Complétez à la main.<br><small>${why.map(esc).join(' · ')}</small>`,'error');
 }
 
 // ===== BD : recherche ISBN (Google Books → Open Library → BnF) et par titre
