@@ -1,0 +1,29 @@
+name: Deployer sur GitHub Pages
+on:
+  push:
+    branches: ["main"]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generer config.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
+          BRICKSET_API_KEY: ${{ secrets.BRICKSET_API_KEY }}
+        run: |
+          printf 'window.APP_CONFIG={SUPABASE_URL:"%s",SUPABASE_ANON_KEY:"%s",GOOGLE_BOOKS_API_KEY:"%s",BRICKSET_API_KEY:"%s"};' "$SUPABASE_URL" "$SUPABASE_ANON_KEY" "$GOOGLE_BOOKS_API_KEY" "$BRICKSET_API_KEY" > config.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4
