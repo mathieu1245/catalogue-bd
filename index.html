@@ -306,7 +306,7 @@ async function getCover(url){
 }
 
 // ===== Codes : ISBN (BD) · n° de set ou EAN (Lego) · texte brut (autres)
-const REBRICKABLE_KEY=''; // ← collez ici votre clé gratuite entre les guillemets (rebrickable.com → Compte → Paramètres → API)
+const REBRICKABLE_KEY='b696ef57a6d01828d230b9db3167260f';
 async function rb(path){ // en-tête d'autorisation, puis paramètre ?key= si le navigateur refuse l'en-tête
  const u='https://rebrickable.com/api/v3/lego/'+path;
  const errs=[];
