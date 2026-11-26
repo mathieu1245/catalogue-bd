@@ -625,10 +625,7 @@ function previewImage(event) {
 }
 
 function stopBDScanner() {
-    if (scanner) {
-        try { scanner.stop(); } catch(e) {}
-        scanner = null;
-    }
+    if (scanner) { try { scanner.stop(); } catch(e) {} scanner = null; }
     const readerEl = document.getElementById('reader');
     if (readerEl) { readerEl.style.display = 'none'; readerEl.innerHTML = ''; }
     const b1 = document.getElementById('btnScan'), b2 = document.getElementById('btnStopScan');
@@ -637,10 +634,7 @@ function stopBDScanner() {
 }
 
 function stopLegoScanner() {
-    if (legoScanner) {
-        try { legoScanner.stop(); } catch(e) {}
-        legoScanner = null;
-    }
+    if (legoScanner) { try { legoScanner.stop(); } catch(e) {} legoScanner = null; }
     if (legoStream) { legoStream.getTracks().forEach(t => t.stop()); legoStream = null; }
     const readerEl = document.getElementById('legoReader');
     if (readerEl) readerEl.innerHTML = '';
@@ -720,6 +714,7 @@ async function openLegoScanner() {
     }
 }
 
+// ✅ NOUVELLE VERSION : crop de TOUTE la moitié supérieure (robuste)
 async function legoCapture() {
     handling = false;
     setLegoStatus('<span class="loader"></span> Analyse...', 'searching');
@@ -736,7 +731,7 @@ async function legoCapture() {
     full.height = video.videoHeight;
     full.getContext('2d').drawImage(video, 0, 0);
     
-    // 1) Code-barres / QR
+    // 1) Code-barres / QR sur toute l'image
     let code = null;
     if ('BarcodeDetector' in window) {
         try { code = await detectWithBarcodeDetector(full); } catch (e) {}
@@ -756,12 +751,18 @@ async function legoCapture() {
         return;
     }
     
-    // 2) OCR du n° du set - SANS binarisation
+    // 2) OCR : on crop TOUTE la moitié supérieure de l'image (robuste, pas besoin de viser précisément)
     setLegoStatus('<span class="loader"></span> Lecture du n° du set (OCR)...', 'searching');
     let num = null;
     try {
-        const crop = cropLegoZone(full, 3.0); // Zone 3× plus large
-        num = await ocrSetNumber(crop);
+        const halfTop = document.createElement('canvas');
+        halfTop.width = full.width;
+        halfTop.height = Math.floor(full.height * 0.55); // 55% du haut
+        const ctx = halfTop.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(full, 0, 0, full.width, halfTop.height, 0, 0, halfTop.width, halfTop.height);
+        num = await ocrSetNumber(halfTop);
     } catch (e) {
         console.error('Erreur OCR:', e);
     }
@@ -785,58 +786,25 @@ async function legoCapture() {
     setLegoStatus('⚠️ Rien détecté. Réessayez ou tapez le numéro.', 'error');
 }
 
-// ✅ SANS binarisation - Tesseract 5 gère mieux la couleur/niveaux de gris
-function cropLegoZone(fullCanvas, expansionFactor = 1.0) {
-    const overlay = document.getElementById('legoScanOverlay');
-    const zone = overlay.querySelector('.ls-zone');
-    const ow = overlay.clientWidth, oh = overlay.clientHeight;
-    const zr = zone.getBoundingClientRect();
-    const vw = fullCanvas.width, vh = fullCanvas.height;
-    const videoAspect = vw / vh;
-    const overlayAspect = ow / oh;
-    let sx, sy, sw, sh;
-    if (videoAspect > overlayAspect) {
-        const displayHeight = oh;
-        const displayWidth = oh * videoAspect;
-        const offsetX = (displayWidth - ow) / 2;
-        sx = Math.max(0, Math.round((zr.left + offsetX) * (vw / displayWidth)));
-        sy = Math.max(0, Math.round(zr.top * (vh / displayHeight)));
-        sw = Math.min(vw - sx, Math.round(zr.width * expansionFactor * (vw / displayWidth)));
-        sh = Math.min(vh - sy, Math.round(zr.height * expansionFactor * (vh / displayHeight)));
-    } else {
-        const displayWidth = ow;
-        const displayHeight = ow / videoAspect;
-        const offsetY = (displayHeight - oh) / 2;
-        sx = Math.max(0, Math.round(zr.left * (vw / displayWidth)));
-        sy = Math.max(0, Math.round((zr.top + offsetY) * (vh / displayHeight)));
-        sw = Math.min(vw - sx, Math.round(zr.width * expansionFactor * (vw / displayWidth)));
-        sh = Math.min(vh - sy, Math.round(zr.height * expansionFactor * (vh / displayHeight)));
-    }
-    const UPSCALE = 5;
-    const crop = document.createElement('canvas');
-    crop.width = Math.max(300, sw * UPSCALE);
-    crop.height = Math.max(150, sh * UPSCALE);
-    const ctx = crop.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
-    // ❌ PAS de binarisation - Tesseract 5 gère mieux la couleur
-    return crop;
-}
-
-// ✅ PSM SINGLE_WORD au lieu de SINGLE_LINE
+// ✅ PSM.SPARSE_TEXT : cherche des mots/numéros dispersés dans une grande zone
 async function ocrSetNumber(canvas) {
     if (!window.Tesseract) { await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'); }
     const worker = await Tesseract.createWorker('eng', 1, {
         logger: m => { if (m.status === 'recognizing text') setLegoStatus(`<span class="loader"></span> OCR... ${Math.round(m.progress * 100)}%`, 'searching'); }
     });
-    await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD });
+    // SPARSE_TEXT : cherche du texte dispersé (parfait pour un numéro isolé dans une grande zone)
+    await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT });
     const { data } = await worker.recognize(canvas);
     await worker.terminate();
     const text = (data.text || '').replace(/\s+/g, ' ').trim();
     console.log('OCR text:', text);
-    const m = text.match(/(\d{3,7})/);
-    return m ? m[1] : null;
+    
+    // Cherche TOUS les nombres de 3-7 chiffres et prend le PLUS LONG (plus fiable)
+    const matches = text.match(/\d{3,7}/g) || [];
+    if (matches.length === 0) return null;
+    // Trie par longueur décroissante, puis par valeur
+    matches.sort((a, b) => b.length - a.length || parseInt(b) - parseInt(a));
+    return matches[0];
 }
 
 function toggleLegoManual(force) {
