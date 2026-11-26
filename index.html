@@ -48,7 +48,7 @@
         </select>
         
       </div>
-      <div class="filters-row"><input type="text" id="new-personne-input" placeholder="Nouvelle personne..." style="flex:1;padding:8px 10px;border-radius:8px;border:none;"><button type="button" id="btn-add-personne" class="btn-manage">+ Ajouter</button></div>
+      <div class="filters-row"><button type="button" id="btn-manage-personnes" class="btn-manage" style="width:100%;">Gérer les personnes</button></div>
     </header>
     <div class="search-bar"><input type="search" id="search-input" placeholder="🔍 Rechercher titre, set, auteur, santonnier, réf..."></div>
     <main id="items-container" class="content"></main>
@@ -122,6 +122,18 @@
       <button id="btn-delete-item" class="btn btn-danger">Supprimer cet objet</button>
     </div>
   </div>
+  
+  <div id="modal-personnes" class="modal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>Gérer les personnes</h2><button class="close-btn" data-close="modal-personnes">&times;</button></div>
+      <form id="form-add-personne" class="btn-row" style="margin-bottom:16px;">
+        <input type="text" id="new-personne-input" placeholder="Nouveau prénom..." required>
+        <button type="submit" class="btn btn-primary" style="width:auto;margin-top:0;padding:0 16px;">Ajouter</button>
+      </form>
+      <div id="personnes-list"></div>
+    </div>
+  </div>
+
   <script src="scanner.js"></script><script src="bd.js"></script><script src="lego.js"></script><script src="web-scraper.js"></script><script src="app.js"></script>
 </body>
 </html>

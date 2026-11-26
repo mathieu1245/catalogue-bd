@@ -2,7 +2,7 @@
   const cfg = window.APP_CONFIG || {};
   if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) { alert('Configurez config.js'); return; }
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-  let currentUser = null, allCollections = [], allItems = [], isSignUpMode = false, currentDetailItem = null;
+  let currentUser = null, allPersonnes = [], allItems = [], isSignUpMode = false, currentDetailItem = null;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
@@ -46,13 +46,13 @@
   $('btn-logout').addEventListener('click', () => sb.auth.signOut());
 
   async function loadData() {
-    const [cRes, iRes] = await Promise.all([
-      Promise.resolve({ data: [] }),
-      sb.from('items').select('*').order('created_at', { ascending: false })
+    const [pRes, iRes] = await Promise.all([
+      sb.from("personnes").select("*").order("nom"),
+      sb.from("items").select("*").order("created_at", { ascending: false })
     ]);
-    allCollections = cRes.data || [];
+    allPersonnes = pRes.data || [];
     allItems = iRes.data || [];
-    const savedP = JSON.parse(localStorage.getItem("custom_personnes") || "[]"); const personnes = [...new Set(["Moi", ...savedP, ...allItems.map(i => i.personne)].filter(Boolean))];
+    const personnes = [...new Set(["Moi", ...allPersonnes.map(p => p.nom), ...allItems.map(i => i.personne)].filter(Boolean))];
     const selP = $('active-personne'), prevP = selP.value;
     selP.innerHTML = '<option value="all">👤 Toutes personnes</option>' + personnes.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
     if ([...selP.options].some(o => o.value === prevP)) selP.value = prevP; selP.onchange = () => { localStorage.setItem("selected_personne", selP.value); updateColFilter(); renderItems(); };
@@ -234,24 +234,62 @@ document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 
   
-  const btnAddP = document.getElementById("btn-add-personne");
-  if (btnAddP) {
-    btnAddP.onclick = function() {
+  
+  const btnManageP = document.getElementById("btn-manage-personnes");
+  if (btnManageP) {
+    btnManageP.onclick = () => { renderPersonnesList(); document.getElementById("modal-personnes").classList.add("active"); };
+  }
+  const formAddP = document.getElementById("form-add-personne");
+  if (formAddP) {
+    formAddP.onsubmit = async (e) => {
+      e.preventDefault();
       const inp = document.getElementById("new-personne-input");
-      const n = (inp ? inp.value : "").trim();
-      if (!n) { if (inp) inp.focus(); return; }
-      const saved = JSON.parse(localStorage.getItem("custom_personnes") || "[]");
-      if (!saved.includes(n)) { saved.push(n); localStorage.setItem("custom_personnes", JSON.stringify(saved)); }
-      const sel = document.getElementById("active-personne");
-      if (sel) {
-        if (!Array.from(sel.options).some(o => o.value === n)) sel.add(new Option(n, n));
-        sel.value = n;
+      const nom = inp.value.trim();
+      if (!nom) return;
+      if (!allPersonnes.some(p => p.nom.toLowerCase() === nom.toLowerCase())) {
+        await sb.from("personnes").insert([{ user_id: currentUser.id, nom }]);
       }
-      localStorage.setItem("selected_personne", n);
-      if (inp) inp.value = "";
-      if (typeof renderItems === "function") renderItems();
+      inp.value = "";
+      localStorage.setItem("selected_personne", nom);
+      await loadData();
+      renderPersonnesList();
     };
   }
+  function renderPersonnesList() {
+    const box = document.getElementById("personnes-list");
+    if (!box) return;
+    const noms = [...new Set(["Moi", ...allPersonnes.map(p => p.nom), ...allItems.map(i => i.personne)].filter(Boolean))];
+    box.innerHTML = noms.map(nom => {
+      const count = allItems.filter(i => (i.personne || "Moi") === nom).length;
+      const dbRec = allPersonnes.find(p => p.nom === nom);
+      return "<div class=\"detail-row\" style=\"justify-content:space-between;align-items:center;\">" +
+        "<div><strong>" + esc(nom) + "</strong> <small style=\"color:#8e8e93;\">(" + count + " objet" + (count > 1 ? "s" : "") + ")</small></div>" +
+        "<div style=\"display:flex;gap:6px;\">" +
+        "<button type=\"button\" class=\"btn-secondary\" style=\"padding:4px 10px;border:none;border-radius:6px;cursor:pointer;\" onclick=\"renamePersonne(" + JSON.stringify(nom) + ", " + JSON.stringify(dbRec ? dbRec.id : "") + ")\">Renommer</button>" +
+        (nom !== "Moi" ? "<button type=\"button\" class=\"btn-danger\" style=\"padding:4px 10px;border:none;border-radius:6px;cursor:pointer;\" onclick=\"deletePersonne(" + JSON.stringify(nom) + ", " + JSON.stringify(dbRec ? dbRec.id : "") + ")\">Suppr.</button>" : "") +
+        "</div></div>";
+    }).join("");
+  }
+  window.renamePersonne = async (oldNom, dbId) => {
+    const newNom = prompt("Nouveau nom pour " + oldNom + " :", oldNom);
+    if (!newNom || !newNom.trim() || newNom.trim() === oldNom) return;
+    const clean = newNom.trim();
+    if (dbId) await sb.from("personnes").update({ nom: clean }).eq("id", dbId);
+    else await sb.from("personnes").insert([{ user_id: currentUser.id, nom: clean }]);
+    await sb.from("items").update({ personne: clean }).eq("personne", oldNom);
+    if (localStorage.getItem("selected_personne") === oldNom) localStorage.setItem("selected_personne", clean);
+    await loadData();
+    renderPersonnesList();
+  };
+  window.deletePersonne = async (nom, dbId) => {
+    if (!confirm("Supprimer " + nom + " ? (Ses objets seront réattribués à Moi)")) return;
+    if (dbId) await sb.from("personnes").delete().eq("id", dbId);
+    await sb.from("items").update({ personne: "Moi" }).eq("personne", nom);
+    if (localStorage.getItem("selected_personne") === nom) localStorage.setItem("selected_personne", "all");
+    await loadData();
+    renderPersonnesList();
+  };
+
   initAuth();
 
 })();
